@@ -13,9 +13,144 @@ var MAX_LARGO_POLYLINE = 6000;    // la URL de Static Maps admite ~8192 caracter
 
 /**
  * Busca una dirección o lugar y devuelve solo resultados de la provincia de Salta.
+ * También acepta un link de Google Maps (largo o corto) o coordenadas "lat, lng".
  * @return {{nombre, direccion, place_id, lat, lng, aproximado}[]}
  */
 function buscarLugares_(texto) {
+  var crudo = String(texto === null || texto === undefined ? '' : texto).trim().slice(0, 2000);
+
+  // Link corto de "Compartir" (maps.app.goo.gl/...): se resuelve al link largo.
+  var eraLinkCorto = esLinkCortoMaps_(crudo);
+  if (eraLinkCorto) crudo = resolverLinkCorto_(crudo);
+
+  var ubicacion = leerUbicacionDeTexto_(crudo);
+  if (eraLinkCorto && !ubicacion) {
+    throw new Error('No pudimos abrir ese link de Google Maps. Revisá que esté completo o copialo de nuevo.');
+  }
+  if (ubicacion && ubicacion.lat !== undefined) return lugarDesdeCoordenadas_(ubicacion);
+  if (ubicacion && ubicacion.texto) crudo = ubicacion.texto; // link sin coordenadas: buscar por nombre
+
+  return buscarPorTexto_(crudo);
+}
+
+/**
+ * Lógica pura (testeable): saca coordenadas o un texto buscable de lo que pegó el usuario.
+ * Devuelve {lat, lng, nombre} | {texto} | null (si es texto común para buscar).
+ */
+function leerUbicacionDeTexto_(texto) {
+  var s = String(texto || '').trim();
+  var num = '(-?\\d{1,3}(?:\\.\\d+)?)';
+
+  // Coordenadas sueltas: "-24.7979, -65.4723"
+  var m = s.match(new RegExp('^' + num + '\\s*[,;\\s]\\s*' + num + '$'));
+  if (m) return { lat: Number(m[1]), lng: Number(m[2]), nombre: '' };
+
+  if (!/^https?:\/\/([a-z0-9-]+\.)*google\.[a-z.]+\/maps|^https?:\/\/maps\.google\./i.test(s)) return null;
+
+  var url = s;
+  try { url = decodeURIComponent(s.replace(/\+/g, ' ')); } catch (e) { /* se usa como vino */ }
+
+  var nombre = '';
+  var mp = url.match(/\/maps\/place\/([^\/@?]+)/);
+  if (mp) nombre = mp[1].trim();
+
+  // 1) Pin del lugar (!3d lat !4d lng): es la ubicación exacta del lugar elegido.
+  var pines = [];
+  var re = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/g;
+  var p;
+  while ((p = re.exec(url)) !== null) pines.push(p);
+  if (pines.length && !/\/maps\/dir\//.test(url)) {
+    var ultimo = pines[pines.length - 1];
+    return { lat: Number(ultimo[1]), lng: Number(ultimo[2]), nombre: nombre };
+  }
+
+  // 2) Parámetros con coordenadas (?q=lat,lng, ?query=, ?ll=, ?destination=).
+  var mq = url.match(new RegExp('[?&](?:q|query|ll|destination|center)=' + num + ',\\s*' + num));
+  if (mq) return { lat: Number(mq[1]), lng: Number(mq[2]), nombre: nombre };
+
+  // 3) Link de un lugar con nombre: se busca por el nombre (más preciso que el centro del mapa).
+  if (nombre && !/^-?\d/.test(nombre)) return { texto: nombre };
+
+  // 4) Parámetro de búsqueda con texto (?q=Caseros 500 Salta).
+  var mt = url.match(/[?&](?:q|query)=([^&]+)/);
+  if (mt) return { texto: mt[1].trim() };
+
+  // 5) Centro del mapa (@lat,lng,zoom): último recurso.
+  var mc = url.match(new RegExp('@' + num + ',' + num));
+  if (mc && !/\/maps\/dir\//.test(url)) return { lat: Number(mc[1]), lng: Number(mc[2]), nombre: nombre };
+
+  if (/\/maps\/dir\//.test(url)) {
+    throw new Error('Ese link es de un recorrido con varios puntos. Pegá el link de un solo lugar.');
+  }
+  throw new Error('No pudimos leer una ubicación en ese link de Google Maps. Probá con "Compartir → Copiar vínculo" sobre el lugar.');
+}
+
+function esLinkCortoMaps_(s) {
+  return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(s);
+}
+
+/**
+ * Sigue las redirecciones de un link corto de Google Maps (solo dominios de Google) y devuelve el link largo.
+ */
+function resolverLinkCorto_(url) {
+  var permitido = /^https?:\/\/((maps\.app\.)?goo\.gl|([a-z0-9-]+\.)*google\.[a-z.]+)\//i;
+  var actual = url;
+  for (var i = 0; i < 5; i++) {
+    if (!permitido.test(actual)) throw new Error('Ese link no es de Google Maps.');
+    var resp;
+    try {
+      resp = UrlFetchApp.fetch(actual, { followRedirects: false, muteHttpExceptions: true });
+    } catch (e) {
+      throw new Error('No se pudo abrir el link de Google Maps. Probá de nuevo.');
+    }
+    var codigo = resp.getResponseCode();
+    if (codigo < 300 || codigo >= 400) return actual;
+    var h = resp.getAllHeaders();
+    var destino = h.Location || h.location;
+    if (Array.isArray(destino)) destino = destino[0];
+    if (!destino) return actual;
+    actual = destino;
+    if (!esLinkCortoMaps_(actual) && /google\.[a-z.]+\/maps/i.test(actual)) return actual;
+  }
+  return actual;
+}
+
+/** Arma el lugar a partir de coordenadas: verifica que sea Salta y busca la dirección. */
+function lugarDesdeCoordenadas_(u) {
+  var c = obtenerConfig_();
+  if (!isFinite(u.lat) || !isFinite(u.lng) || !dentroDeSalta_(u.lat, u.lng)) {
+    throw new Error('Ese punto está fuera de la provincia de Salta.');
+  }
+  var direccion = '';
+  var placeId = '';
+  var r = null;
+  try {
+    r = Maps.newGeocoder().setLanguage('es').setRegion('ar').reverseGeocode(u.lat, u.lng);
+  } catch (e) {
+    console.error('reverseGeocode: ' + e.message);
+  }
+  if (r && r.status === 'OK' && r.results && r.results.length) {
+    var lugares = filtrarResultadosSalta_(r.results, c.provincia);
+    // Google conoce el punto y no es de Salta (p. ej. Jujuy, que entra en el rectángulo).
+    if (!lugares.length) throw new Error('Ese punto está fuera de la provincia de Salta.');
+    direccion = lugares[0].direccion;
+    placeId = lugares[0].place_id;
+  } else {
+    // Sin respuesta de Google: alcanza con el rectángulo de Salta y se muestran las coordenadas.
+    direccion = redondear_(u.lat, 6) + ', ' + redondear_(u.lng, 6);
+  }
+  return [{
+    nombre: textoLimpio_(u.nombre, 150) || direccion.split(',')[0],
+    direccion: direccion,
+    place_id: placeId,
+    lat: redondear_(u.lat, 6),
+    lng: redondear_(u.lng, 6),
+    aproximado: false
+  }];
+}
+
+/** Búsqueda por texto con el Geocoder, limitada a Salta. */
+function buscarPorTexto_(texto) {
   var c = obtenerConfig_();
   var consulta = textoLimpio_(texto, 150);
   if (consulta.length < 3) throw new Error('Escribí al menos 3 letras para buscar.');

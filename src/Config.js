@@ -1,6 +1,6 @@
 /**
  * Config.js — configuración fija del sistema.
- * No hay planilla: lo que cambia poco vive acá y se modifica con un `clasp push`.
+ * No hay planilla: lo que cambia poco vive acá y se actualiza pegando el archivo en el editor de Apps Script.
  * Lo opcional o sensible va en Propiedades del script (Configuración del proyecto → Propiedades del script).
  */
 
@@ -29,6 +29,8 @@ var CONFIG = {
 /**
  * Configuración completa: CONFIG + Propiedades del script.
  * LOGO_FILE_ID (opcional): ID de un PNG/JPG en el Drive de la cuenta dueña para el encabezado del PDF.
+ * MAPS_API_KEY (opcional): key de Maps JavaScript API para "Elegir en el mapa". Es una key de navegador:
+ *   el navegador la ve sí o sí, así que tiene que estar restringida por referrer y por API (ver SETUP.md).
  */
 function obtenerConfig_() {
   var props = PropertiesService.getScriptProperties();
@@ -42,7 +44,8 @@ function obtenerConfig_() {
     maxSalidasPorDia: CONFIG.maxSalidasPorDia,
     diasAtrasPermitidos: CONFIG.diasAtrasPermitidos,
     maxResultadosBusqueda: CONFIG.maxResultadosBusqueda,
-    logoFileId: (props.getProperty('LOGO_FILE_ID') || '').trim()
+    logoFileId: (props.getProperty('LOGO_FILE_ID') || '').trim(),
+    mapsApiKey: (props.getProperty('MAPS_API_KEY') || '').trim()
   };
 }
 
@@ -84,6 +87,10 @@ function validarConfig() {
   } else {
     chequear(true, 'Logo: sin cargar (opcional)');
   }
+
+  chequear(true, c.mapsApiKey
+    ? 'Mapa para elegir paradas: key cargada (si el mapa no carga, revisar las restricciones de la key)'
+    : 'Mapa para elegir paradas: sin MAPS_API_KEY, el botón "Elegir en el mapa" no se muestra (opcional)');
 
   console.log('Validar configuración\n' + lineas.join('\n'));
   return lineas;

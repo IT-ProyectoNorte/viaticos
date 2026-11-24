@@ -6,7 +6,7 @@ window.google = {
         withSuccessHandler: function (f) { return crear(f, falla); },
         withFailureHandler: function (f) { return crear(ok, f); }
       };
-      ['iniciar', 'buscarLugares', 'calcularSalida', 'descargarPdf'].forEach(function (nombre) {
+      ['iniciar', 'buscarLugares', 'lugarEnPunto', 'calcularSalida', 'descargarPdf'].forEach(function (nombre) {
         api[nombre] = function () {
           fetch('/api/' + nombre, { method: 'POST', body: JSON.stringify(Array.prototype.slice.call(arguments)) })
             .then(function (r) { return r.json(); })

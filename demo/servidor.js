@@ -55,7 +55,7 @@ function crearContexto() {
       getActiveUser: function () { return { getEmail: function () { return EMAIL_DEMO; } }; },
       getEffectiveUser: function () { return { getEmail: function () { return EMAIL_DEMO; } }; }
     },
-    PropertiesService: { getScriptProperties: function () { return { getProperty: function () { return null; } }; } },
+    PropertiesService: { getScriptProperties: function () { return { getProperty: function (k) { return k === 'MAPS_API_KEY' ? (process.env.MAPS_API_KEY || null) : null; } }; } },
     Utilities: { formatDate: formatearFecha }
   };
   vm.createContext(ctx);
@@ -63,16 +63,56 @@ function crearContexto() {
     vm.runInContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx, { filename: f });
   });
 
-  // Reemplazos de lo que depende de Google.
-  ctx.buscarLugares_ = function (texto) {
+  // Mapa para elegir paradas: con MAPS_API_KEY en el entorno se usa el de Google; si no, uno de muestra (OpenStreetMap).
+  var iniciarReal = ctx.iniciar;
+  ctx.iniciar = function () {
+    var info = iniciarReal();
+    info.mapaDemo = !info.mapsApiKey;
+    return info;
+  };
+
+  // Reemplazos de lo que depende de Google. buscarLugares_ (lectura de links y coordenadas) es el real.
+  ctx.buscarPorTexto_ = function (texto) {
     var q = normalizar(String(texto || '').trim());
     if (q.length < 3) throw new Error('Escribí al menos 3 letras para buscar.');
-    return LUGARES.filter(function (l) {
+    var encontrados = LUGARES.filter(function (l) {
       return normalizar(l.nombre + ' ' + l.direccion).indexOf(q) >= 0;
-    }).filter(function (l) {
+    });
+    var enSalta = encontrados.filter(function (l) {
       // Igual que el sistema real: solo provincia de Salta.
       return ctx.dentroDeSalta_(l.lat, l.lng) && !/jujuy/i.test(l.direccion);
     });
+    if (!enSalta.length && !encontrados.length) {
+      throw new Error('DEMO: la búsqueda por texto solo conoce una lista fija (plaza, cerrillos, aeropuerto, lerma, ' +
+        'vaqueros…). Probá pegando un link de Google Maps o coordenadas. En el sistema real se busca en Google Maps.');
+    }
+    return enSalta;
+  };
+
+  ctx.lugarDesdeCoordenadas_ = function (u) {
+    if (!isFinite(u.lat) || !isFinite(u.lng) || !ctx.dentroDeSalta_(u.lat, u.lng)) {
+      throw new Error('Ese punto está fuera de la provincia de Salta.');
+    }
+    var coords = ctx.redondear_(u.lat, 6) + ', ' + ctx.redondear_(u.lng, 6);
+    return [{
+      nombre: ctx.textoLimpio_(u.nombre, 150) || ('Punto ' + coords),
+      direccion: coords + ' (DEMO: en el sistema real se muestra la dirección)',
+      place_id: '', lat: ctx.redondear_(u.lat, 6), lng: ctx.redondear_(u.lng, 6), aproximado: false
+    }];
+  };
+
+  // Links cortos: se siguen las redirecciones con un proceso aparte (la demo es sincrónica, como Apps Script).
+  ctx.resolverLinkCorto_ = function (url) {
+    var script = 'let u=process.argv[1];(async()=>{for(let i=0;i<5;i++){' +
+      'if(!/^https?:\\/\\/((maps\\.app\\.)?goo\\.gl|([a-z0-9-]+\\.)*google\\.[a-z.]+)\\//i.test(u))break;' +
+      'const r=await fetch(u,{redirect:"manual"});const l=r.headers.get("location");if(!l)break;u=l;' +
+      'if(/google\\.[a-z.]+\\/maps/i.test(u)&&!/goo\\.gl/i.test(u))break;}process.stdout.write(u)})()' +
+      '.catch(()=>process.exit(1))';
+    try {
+      return childProcess.execFileSync(process.execPath, ['-e', script, url], { timeout: 15000 }).toString();
+    } catch (e) {
+      throw new Error('No se pudo abrir el link de Google Maps. Probá de nuevo.');
+    }
   };
 
   ctx.calcularRuta_ = function (paradas) {
@@ -211,13 +251,13 @@ function htmlAPdf(html) {
 // ---------------------------------------------------------------------------
 // Servidor
 // ---------------------------------------------------------------------------
-var FUNCIONES_PUBLICAS = ['iniciar', 'buscarLugares', 'calcularSalida', 'descargarPdf'];
+var FUNCIONES_PUBLICAS = ['iniciar', 'buscarLugares', 'lugarEnPunto', 'calcularSalida', 'descargarPdf'];
 
 function paginaIndex() {
-  var html = fs.readFileSync(path.join(SRC, 'html', 'Index.html'), 'utf8');
+  var html = fs.readFileSync(path.join(SRC, 'Index.html'), 'utf8');
   var shim = fs.readFileSync(path.join(__dirname, 'google-script-run.js'), 'utf8');
   var banda = '<div style="background:#fef7e0;color:#7a4f01;padding:8px 16px;font-size:13px;border-bottom:1px solid #f9e1a8">' +
-    '<b>Modo demo:</b> los km son aproximados y el mapa es un esquema. Probá buscar "plaza", "cerrillos", "aeropuerto", "lerma" o "jujuy".</div>';
+    '<b>Modo demo:</b> los km son aproximados y el mapa es un esquema. Buscá "plaza", "cerrillos", "aeropuerto" o "lerma", o pegá un link de Google Maps.</div>';
   return html
     .replace('<base target="_top">', '<script>' + shim + '</script>')
     .replace('<main id="app">', banda + '<main id="app">');

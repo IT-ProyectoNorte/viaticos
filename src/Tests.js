@@ -1,5 +1,5 @@
 /**
- * Tests.js — se corren desde el editor (elegir la función y "Ejecutar") o con `clasp run`.
+ * Tests.js — se corren desde el editor (elegir la función y "Ejecutar") o con 'clasp run'.
  * Todos exigen la cuenta dueña: la web app corre como esa cuenta y no queremos que
  * un usuario del dominio pueda dispararlos con google.script.run.
  */
@@ -17,7 +17,7 @@ var TEST_TOLERANCIA = 0.02; // ±2 %
 /** Corre todos los tests y deja el resumen en el log. */
 function correrTests() {
   exigirDueno_();
-  var tests = [test_formatos, test_validarParadas, test_filtroSalta, test_htmlPdf,
+  var tests = [test_formatos, test_validarParadas, test_filtroSalta, test_leerUbicacion, test_htmlPdf,
     test_rutaBasica, test_busqueda, test_pdfCompleto];
   var resultados = tests.map(function (t) {
     try {
@@ -86,6 +86,41 @@ function test_filtroSalta() {
   afirmarIgual_(filtrados[0].nombre, 'Caseros 500', 'nombre = primera parte de la dirección');
   afirmarIgual_(filtrados[0].direccion, 'Caseros 500, A4400 Salta', 'sin ", Argentina"');
   console.log('test_filtroSalta OK');
+}
+
+function test_leerUbicacion() {
+  exigirDueno_();
+  var u;
+  u = leerUbicacionDeTexto_('-24.7979909, -65.4723851');
+  afirmarIgual_(u.lat + ',' + u.lng, '-24.7979909,-65.4723851', 'coordenadas sueltas');
+
+  u = leerUbicacionDeTexto_('https://www.google.com/maps/place/Office+Park+-+San+Lorenzo+Chico/@-24.7978,-65.4747,17z/' +
+    'data=!3m1!4b1!4m6!3m5!1s0x941bc34a9d84a275:0x54ffb299636ceb42!8m2!3d-24.7979909!4d-65.4723851!16s');
+  afirmarIgual_(u.lat + ',' + u.lng, '-24.7979909,-65.4723851', 'link de lugar: usa el pin, no el centro del mapa');
+  afirmarIgual_(u.nombre, 'Office Park - San Lorenzo Chico', 'nombre del lugar desde el link');
+
+  u = leerUbicacionDeTexto_('https://maps.google.com/?q=-24.789,-65.410');
+  afirmarIgual_(u.lat + ',' + u.lng, '-24.789,-65.41', 'parámetro q con coordenadas');
+
+  u = leerUbicacionDeTexto_('https://www.google.com/maps/search/?api=1&query=Caseros+500+Salta');
+  afirmarIgual_(u.texto, 'Caseros 500 Salta', 'parámetro query con texto');
+
+  u = leerUbicacionDeTexto_('https://www.google.com/maps/place/Hospital+San+Bernardo/@-24.78,-65.40,15z');
+  afirmarIgual_(u.texto, 'Hospital San Bernardo', 'lugar sin pin: busca por nombre');
+
+  u = leerUbicacionDeTexto_('https://www.google.com.ar/maps/@-24.79,-65.41,14z');
+  afirmarIgual_(u.lat + ',' + u.lng, '-24.79,-65.41', 'solo centro del mapa');
+
+  afirmarError_(function () {
+    leerUbicacionDeTexto_('https://www.google.com/maps/dir/-24.7978195,-65.4729419/Office+Park/@-24.79,-65.47,17z/' +
+      'data=!4m19!1m11!3m4!1m2!1d-65.47!2d-24.79!3s0x1!1m5!1m1!1s0x2!2m2!1d-65.4723851!2d-24.7979909!3e2');
+  }, 'varios puntos', 'link de recorrido');
+
+  afirmarIgual_(leerUbicacionDeTexto_('Caseros 500'), null, 'texto común');
+  afirmarIgual_(leerUbicacionDeTexto_('https://www.ejemplo.com/maps/@-24.79,-65.41'), null, 'otro dominio no es link de Maps');
+  afirmar_(esLinkCortoMaps_('https://maps.app.goo.gl/AbC123'), 'link corto');
+  afirmar_(!esLinkCortoMaps_('https://bit.ly/xyz'), 'otro acortador no');
+  console.log('test_leerUbicacion OK');
 }
 
 function test_htmlPdf() {

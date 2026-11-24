@@ -4,7 +4,7 @@
  */
 
 function doGet() {
-  return HtmlService.createTemplateFromFile('html/Index')
+  return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('Viáticos por km — Proyecto Norte')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -18,10 +18,20 @@ function iniciar() {
     email: email,
     hoy: hoyClave_(),
     oficina: c.oficina.nombre,
+    oficinaLat: c.oficina.lat,
+    oficinaLng: c.oficina.lng,
+    limitesSalta: c.limitesSalta,
+    mapsApiKey: c.mapsApiKey,
     maxParadas: c.maxParadas,
     maxSalidas: c.maxSalidasPorDia,
     diasAtras: c.diasAtrasPermitidos
   };
+}
+
+/** Lugar a partir del clic en el mapa: confirma que sea de Salta y trae la dirección. */
+function lugarEnPunto(lat, lng) {
+  usuarioActual_();
+  return lugarDesdeCoordenadas_({ lat: aNumero_(lat), lng: aNumero_(lng), nombre: '' })[0];
 }
 
 /** Busca lugares en Salta. */

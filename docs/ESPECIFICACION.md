@@ -47,6 +47,11 @@ Pantalla única:
    - Motivo u obra (opcional).
    - Origen y destino fijos = Oficina (no editables).
    - Buscador: escribe una dirección o lugar → **Buscar** → elige entre las coincidencias de Salta. Las coincidencias aproximadas se marcan como tales.
+   - **📍 Elegir en el mapa**: abre un mapa de Google (Maps JavaScript API, `MAPS_API_KEY`) centrado en la oficina y
+     limitado a Salta, con la oficina y las paradas ya cargadas marcadas. El empleado hace clic en el lugar, el servidor
+     (`lugarEnPunto`) confirma que sea de Salta con `reverseGeocode` y trae la dirección, el empleado puede cambiar el nombre
+     y la agrega. Sin key, el botón no se muestra.
+   - También acepta **un link de Google Maps** (largo o corto de "Compartir → Copiar vínculo", `maps.app.goo.gl/...`) o **coordenadas** (`-24.79, -65.41`). Un link de recorrido (`/maps/dir/`) se rechaza porque tiene varios puntos.
    - Chips de "Usados hace poco" (los últimos 12 lugares, guardados en el navegador).
    - Paradas ordenables (↑ ↓) y quitables (✕).
    - **Calcular km** → muestra km, minutos estimados, mapa y link a Google Maps. Si se cambian las paradas, hay que recalcular.
@@ -63,6 +68,10 @@ El borrador (fecha, salidas y paradas) se guarda en el navegador: si se cierra l
 - Mapa: `Maps.newStaticMap()` de 640×400 con la polyline y los marcadores (O = oficina, 1..9 = paradas, X = parada 10). Si la polyline es demasiado larga para la URL, se dibujan rectas entre las paradas.
 - Cache (`CacheService`, 6 h) de rutas, mapas y búsquedas, para no gastar cuota.
 - Buscador: `Maps.newGeocoder()` con `setBounds` sobre Salta. Si el texto no dice "Salta", se agrega ", Salta, Argentina". Se filtra por `administrative_area_level_1 = Salta`.
+- Links de Google Maps (`leerUbicacionDeTexto_`, lógica pura): prioridad pin del lugar (`!3d…!4d…`) → `?q=lat,lng` →
+  nombre del lugar (`/maps/place/Nombre`, se busca por texto) → `?q=texto` → centro del mapa (`@lat,lng`).
+  Los links cortos se resuelven con `UrlFetchApp` siguiendo redirecciones solo a dominios de Google.
+  Con coordenadas, `reverseGeocode` confirma que el punto es de la provincia de Salta y trae la dirección.
 - **Cuotas**: el servicio Maps de Apps Script tiene un límite diario de consultas según el tipo de cuenta (verificar el vigente en la documentación de cuotas de Apps Script). Cada búsqueda nueva y cada ruta nueva consume una consulta. Los resultados que salen de la cache no consumen.
 
 ## 6. PDF (`Pdf.js`)
@@ -81,7 +90,8 @@ Contenido:
 - Toda función pública de la web app valida que el usuario sea del dominio (`usuarioActual_()`).
 - Las funciones de editor (`validarConfig`, tests) exigen la cuenta dueña (`exigirDueno_()`).
 - Todo texto del usuario se escapa antes de entrar al PDF y en la pantalla se inserta con `textContent`.
-- Permisos del script: solo `userinfo.email` y `drive.readonly` (para leer el logo).
+- Permisos del script: `userinfo.email`, `drive.readonly` (para leer el logo) y `script.external_request`
+  (solo para abrir links cortos de Google Maps; el código rechaza cualquier dominio que no sea de Google).
 
 ## 8. Limitaciones conocidas
 

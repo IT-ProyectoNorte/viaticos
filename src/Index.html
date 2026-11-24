@@ -38,6 +38,7 @@
   ol.paradas li .txt small { display: block; color: var(--gris); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .buscador { display: flex; gap: 8px; margin-top: 6px; }
   .buscador input { margin-top: 0; }
+  .ayuda { margin-top: 4px; font-size: 12px; color: var(--gris); }
   .resultados { margin-top: 6px; border: 1px solid var(--borde); border-radius: 6px; overflow: hidden; }
   .resultados button { display: block; width: 100%; text-align: left; border: none; border-bottom: 1px solid var(--borde); border-radius: 0; padding: 9px 10px; }
   .resultados button:last-child { border-bottom: none; }
@@ -58,6 +59,21 @@
   footer .dentro { max-width: 760px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   footer .total { font-size: 15px; }
   footer .total b { font-size: 20px; }
+  .modal { position: fixed; inset: 0; background: rgba(32,33,36,.55); display: none; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+  .modal.visible { display: flex; }
+  .modal-caja { background: #fff; border-radius: 10px; width: 100%; max-width: 900px; height: min(90vh, 720px); display: flex; flex-direction: column; overflow: hidden; }
+  .modal-cab { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--borde); }
+  .modal-cab b { font-size: 15px; }
+  #mapa { flex: 1; min-height: 240px; background: #e8eaed; }
+  .mapa-info { padding: 10px 14px; border-top: 1px solid var(--borde); font-size: 14px; }
+  .mapa-info .fila-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .mapa-info .fila-form label { flex: 1 1 240px; }
+  .mapa-info small { color: var(--gris); display: block; margin-top: 4px; }
+  .buscador { flex-wrap: wrap; }
+  .buscador input { flex: 1 1 220px; }
+  .etq-mapa { background: transparent; border: none; box-shadow: none; color: #fff; font-weight: bold; padding: 0; }
+  .etq-mapa::before { display: none; }
+  .mapa-demo { background: #fef7e0; color: #7a4f01; font-size: 12px; padding: 6px 14px; }
   .cargando { position: fixed; inset: 0; background: rgba(255,255,255,.7); display: none; align-items: center; justify-content: center; z-index: 10; font-weight: bold; color: var(--azul); }
   .cargando.visible { display: flex; }
 </style>
@@ -77,6 +93,18 @@
   </div>
   <div class="dentro" id="avisoPdf"></div>
 </footer>
+
+<div class="modal" id="modalMapa" role="dialog" aria-modal="true" aria-labelledby="tituloMapa">
+  <div class="modal-caja">
+    <div class="modal-cab">
+      <b id="tituloMapa">Hacé clic en el lugar de la parada</b>
+      <button class="icono" id="cerrarMapa" title="Cerrar">✕</button>
+    </div>
+    <div class="mapa-demo" id="mapaDemo" style="display:none">DEMO: este es un mapa de muestra (OpenStreetMap). En el sistema real es el mapa de Google.</div>
+    <div id="mapa"></div>
+    <div class="mapa-info" id="mapaInfo"></div>
+  </div>
+</div>
 
 <div class="cargando" id="cargando"><span id="cargandoTxt">Calculando…</span></div>
 
@@ -227,12 +255,15 @@
 
     // Buscador
     if (s.paradas.length < INFO.maxParadas) {
-      var input = el('input', { type: 'text', placeholder: 'Agregar parada: dirección o lugar en Salta', maxlength: 150,
+      var input = el('input', { type: 'text', placeholder: 'Agregar parada: dirección, lugar o link de Google Maps', maxlength: 2000,
         onkeydown: function (e) { if (e.key === 'Enter') buscar(i, input.value); } });
       tarjeta.appendChild(el('div', { clase: 'buscador' }, [
         input,
-        el('button', { onclick: function () { buscar(i, input.value); } }, ['Buscar'])
+        el('button', { onclick: function () { buscar(i, input.value); } }, ['Buscar']),
+        mapaDisponible() ? el('button', { onclick: function () { abrirMapa(i); } }, ['📍 Elegir en el mapa']) : null
       ]));
+      tarjeta.appendChild(el('div', { clase: 'ayuda', texto:
+        'Tip: en Google Maps buscá el lugar, tocá "Compartir" → "Copiar vínculo" y pegalo acá. También acepta coordenadas (-24.79, -65.41).' }));
 
       var b = busquedas[i];
       if (b && b.error) tarjeta.appendChild(el('div', { clase: 'aviso error', texto: b.error }));
@@ -398,6 +429,159 @@
     document.getElementById('avisoPdf').innerHTML = '';
     guardarBorrador(); render();
   }
+
+  // -------------------------------------------------------------------------
+  // Elegir la parada en el mapa
+  // Producción: Google Maps JavaScript API (MAPS_API_KEY). Demo: Leaflet + OpenStreetMap.
+  // -------------------------------------------------------------------------
+  var mapa = { salida: null, adaptador: null, libreria: 'ninguna', pedido: 0 };
+
+  function mapaDisponible() { return !!(INFO.mapsApiKey || INFO.mapaDemo); }
+
+  function cargarScript(src, listo, falla) {
+    var s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = listo; s.onerror = function () { falla('No se pudo cargar el mapa. Revisá la conexión.'); };
+    document.head.appendChild(s);
+  }
+
+  function cargarLibreriaMapa(listo, falla) {
+    if (mapa.libreria === 'lista') return listo();
+    if (INFO.mapsApiKey) {
+      window.__vkMapaListo = function () { mapa.libreria = 'lista'; listo(); };
+      window.gm_authFailure = function () { mostrarInfoMapa([el('div', { clase: 'aviso error',
+        texto: 'El mapa de Google no aceptó la key. Avisá a IT (revisar MAPS_API_KEY y sus restricciones).' })]); };
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(INFO.mapsApiKey) +
+        '&language=es&region=AR&loading=async&callback=__vkMapaListo';
+      s.async = true;
+      s.onerror = function () { falla('No se pudo cargar el mapa de Google.'); };
+      document.head.appendChild(s);
+    } else {
+      document.head.appendChild(el('link', { rel: 'stylesheet', href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' }));
+      cargarScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', function () { mapa.libreria = 'lista'; listo(); }, falla);
+    }
+  }
+
+  /** Crea el mapa y devuelve un adaptador común para Google y Leaflet. */
+  function crearAdaptador(div, alHacerClic) {
+    var L0 = INFO.limitesSalta;
+    var centro = { lat: INFO.oficinaLat, lng: INFO.oficinaLng };
+    if (INFO.mapsApiKey) {
+      var g = google.maps;
+      var m = new g.Map(div, {
+        center: centro, zoom: 12, gestureHandling: 'greedy', clickableIcons: true,
+        streetViewControl: false, mapTypeControl: false, fullscreenControl: false,
+        restriction: { latLngBounds: { north: L0.norteLat, south: L0.surLat, east: L0.esteLng, west: L0.oesteLng }, strictBounds: false }
+      });
+      var marcador = null, refs = [];
+      m.addListener('click', function (e) {
+        if (e.placeId) e.stop(); // clic en un comercio o lugar de Google: no abrir su ventanita
+        alHacerClic(e.latLng.lat(), e.latLng.lng());
+      });
+      return {
+        marcar: function (lat, lng) {
+          if (!marcador) marcador = new g.Marker({ map: m, position: { lat: lat, lng: lng } });
+          else marcador.setPosition({ lat: lat, lng: lng });
+        },
+        limpiar: function () { if (marcador) { marcador.setMap(null); marcador = null; } },
+        referencias: function (puntos) {
+          refs.forEach(function (r) { r.setMap(null); });
+          refs = puntos.map(function (p) {
+            return new g.Marker({ map: m, position: { lat: p.lat, lng: p.lng }, title: p.titulo,
+              label: { text: p.etiqueta, color: '#fff', fontWeight: 'bold' },
+              icon: { path: g.SymbolPath.CIRCLE, scale: 11, fillColor: p.color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 } });
+          });
+        },
+        ajustar: function () { /* Google se adapta solo */ }
+      };
+    }
+    // Demo
+    var lm = L.map(div).setView([centro.lat, centro.lng], 12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(lm);
+    lm.setMaxBounds([[L0.surLat, L0.oesteLng], [L0.norteLat, L0.esteLng]]);
+    var lMarcador = null, lRefs = [];
+    lm.on('click', function (e) { alHacerClic(e.latlng.lat, e.latlng.lng); });
+    return {
+      marcar: function (lat, lng) {
+        if (!lMarcador) lMarcador = L.marker([lat, lng]).addTo(lm); else lMarcador.setLatLng([lat, lng]);
+      },
+      limpiar: function () { if (lMarcador) { lm.removeLayer(lMarcador); lMarcador = null; } },
+      referencias: function (puntos) {
+        lRefs.forEach(function (r) { lm.removeLayer(r); });
+        lRefs = puntos.map(function (p) {
+          return L.circleMarker([p.lat, p.lng], { radius: 10, color: '#fff', weight: 2, fillColor: p.color, fillOpacity: 1 })
+            .bindTooltip(p.etiqueta, { permanent: true, direction: 'center', className: 'etq-mapa' }).addTo(lm);
+        });
+      },
+      ajustar: function () { lm.invalidateSize(); }
+    };
+  }
+
+  function mostrarInfoMapa(hijos) {
+    var info = document.getElementById('mapaInfo');
+    info.innerHTML = '';
+    hijos.forEach(function (h) { info.appendChild(h); });
+  }
+
+  function abrirMapa(i) {
+    mapa.salida = i;
+    mapa.pedido++;
+    document.getElementById('modalMapa').classList.add('visible');
+    document.getElementById('mapaDemo').style.display = INFO.mapsApiKey ? 'none' : 'block';
+    mostrarInfoMapa([document.createTextNode('Cargando el mapa…')]);
+    cargarLibreriaMapa(function () {
+      if (!mapa.adaptador) mapa.adaptador = crearAdaptador(document.getElementById('mapa'), clicEnMapa);
+      mapa.adaptador.ajustar();
+      mapa.adaptador.limpiar();
+      var s = estado.salidas[i];
+      mapa.adaptador.referencias([{ lat: INFO.oficinaLat, lng: INFO.oficinaLng, etiqueta: 'O', color: '#1a73e8', titulo: INFO.oficina }]
+        .concat(s.paradas.map(function (p, j) {
+          return { lat: p.lat, lng: p.lng, etiqueta: String(j + 1), color: '#d93025', titulo: p.nombre };
+        })));
+      mostrarInfoMapa([document.createTextNode('Hacé clic en el mapa donde está la parada ' + (s.paradas.length + 1) +
+        '. Podés acercar con la rueda del mouse.')]);
+    }, function (msg) {
+      mostrarInfoMapa([el('div', { clase: 'aviso error', texto: msg })]);
+    });
+  }
+
+  function cerrarMapa() {
+    document.getElementById('modalMapa').classList.remove('visible');
+    mapa.pedido++;
+  }
+
+  function clicEnMapa(lat, lng) {
+    var pedido = ++mapa.pedido;
+    mapa.adaptador.marcar(lat, lng);
+    mostrarInfoMapa([document.createTextNode('Buscando la dirección…')]);
+    llamar('lugarEnPunto', [lat, lng], function (lugar) {
+      if (pedido !== mapa.pedido) return; // hubo otro clic mientras tanto
+      var nombre = el('input', { type: 'text', value: lugar.nombre, maxlength: 150 });
+      var agregar = function () {
+        lugar.nombre = nombre.value.trim() || lugar.nombre;
+        var i = mapa.salida;
+        cerrarMapa();
+        agregarParada(i, lugar);
+      };
+      nombre.addEventListener('keydown', function (e) { if (e.key === 'Enter') agregar(); });
+      mostrarInfoMapa([el('div', { clase: 'fila-form' }, [
+        el('label', {}, ['Nombre de la parada (podés cambiarlo)', nombre]),
+        el('button', { clase: 'primario', onclick: agregar }, ['Agregar parada'])
+      ]), el('small', { texto: lugar.direccion })]);
+      nombre.focus(); nombre.select();
+    }, function (msg) {
+      if (pedido !== mapa.pedido) return;
+      mapa.adaptador.limpiar();
+      mostrarInfoMapa([el('div', { clase: 'aviso error', texto: msg + ' Elegí otro punto.' })]);
+    });
+  }
+
+  document.getElementById('cerrarMapa').addEventListener('click', cerrarMapa);
+  document.getElementById('modalMapa').addEventListener('click', function (e) { if (e.target.id === 'modalMapa') cerrarMapa(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('modalMapa').classList.contains('visible')) cerrarMapa();
+  });
 
   // -------------------------------------------------------------------------
   // Arranque

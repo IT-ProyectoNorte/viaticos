@@ -24,7 +24,7 @@ Todo en Google: **Apps Script (web app independiente) + Google Maps**. No hay pl
 ## Stack y convenciones
 
 - Apps Script runtime V8, JavaScript plano (sin TypeScript ni bundler). Desarrollo local con `clasp` (`rootDir: src`).
-- Archivos: `Config.js` (constantes + `validarConfig()`), `Util.js`, `Rutas.js` (búsqueda + ruta + mapa), `Pdf.js`, `WebApp.js`, `Tests.js`, `html/Index.html`.
+- Archivos: `Config.js` (constantes + `validarConfig()`), `Util.js`, `Rutas.js` (búsqueda + ruta + mapa), `Pdf.js`, `WebApp.js`, `Tests.js`, `Index.html`.
 - Nombres de funciones y variables en español, en camelCase. Las funciones privadas terminan en `_` (así no se exponen a `google.script.run`).
 - Toda función pública de la web app empieza con `usuarioActual_()`. Toda función pública de editor (validación, tests) empieza con `exigirDueno_()`: la web app corre como la cuenta dueña y cualquier usuario del dominio podría invocar funciones públicas.
 - Separar la lógica pura de las llamadas a Google (por ejemplo `filtrarResultadosSalta_`, `htmlPdf_`) para poder testearla sin cuota.
