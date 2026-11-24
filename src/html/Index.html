@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root {
+    --azul: #1a73e8; --azul-osc: #1557b0; --rojo: #d93025; --verde: #188038;
+    --texto: #202124; --gris: #5f6368; --borde: #dadce0; --fondo: #f6f8fb; --tarjeta: #fff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: var(--texto); background: var(--fondo); font-size: 15px; }
+  header { background: var(--azul); color: #fff; padding: 14px 16px; }
+  header h1 { margin: 0; font-size: 19px; }
+  header .usuario { font-size: 13px; opacity: .9; margin-top: 2px; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px 16px 180px; }
+  .tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+  .fila { display: flex; gap: 12px; flex-wrap: wrap; }
+  .fila > label { flex: 1 1 220px; }
+  label { display: block; font-size: 13px; color: var(--gris); }
+  input[type=text], input[type=date] {
+    width: 100%; margin-top: 4px; padding: 9px 10px; font-size: 15px; border: 1px solid var(--borde); border-radius: 6px;
+  }
+  input:focus { outline: 2px solid var(--azul); border-color: transparent; }
+  button { font-size: 14px; border-radius: 6px; border: 1px solid var(--borde); background: #fff; padding: 8px 12px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primario { background: var(--azul); border-color: var(--azul); color: #fff; font-weight: bold; }
+  button.primario:hover:not(:disabled) { background: var(--azul-osc); }
+  button.link { border: none; background: none; color: var(--azul); padding: 4px 6px; }
+  button.icono { padding: 4px 9px; }
+  .salida h2 { margin: 0; font-size: 16px; }
+  .salida-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  ol.paradas { list-style: none; padding: 0; margin: 10px 0; }
+  ol.paradas li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--borde); }
+  ol.paradas li .num { flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--rojo); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
+  ol.paradas li.oficina .num { background: var(--azul); }
+  ol.paradas li .txt { flex: 1; min-width: 0; }
+  ol.paradas li .txt small { display: block; color: var(--gris); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .buscador { display: flex; gap: 8px; margin-top: 6px; }
+  .buscador input { margin-top: 0; }
+  .resultados { margin-top: 6px; border: 1px solid var(--borde); border-radius: 6px; overflow: hidden; }
+  .resultados button { display: block; width: 100%; text-align: left; border: none; border-bottom: 1px solid var(--borde); border-radius: 0; padding: 9px 10px; }
+  .resultados button:last-child { border-bottom: none; }
+  .resultados button:hover { background: #e8f0fe; }
+  .resultados small { color: var(--gris); }
+  .recientes { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .recientes span.et { font-size: 12px; color: var(--gris); }
+  .chip { font-size: 12.5px; padding: 4px 10px; border-radius: 14px; background: #e8f0fe; border-color: #c6dafc; }
+  .resultado { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--borde); }
+  .resultado .km { font-size: 20px; font-weight: bold; color: var(--verde); }
+  .resultado img { width: 100%; border-radius: 6px; border: 1px solid var(--borde); margin-top: 8px; }
+  .aviso { font-size: 13px; padding: 8px 10px; border-radius: 6px; margin-top: 8px; }
+  .aviso.error { background: #fce8e6; color: #a50e0e; }
+  .aviso.info { background: #e8f0fe; color: #174ea6; }
+  .aviso.ok { background: #e6f4ea; color: #0d652d; }
+  .pendiente { color: var(--gris); font-size: 13px; }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--borde); padding: 10px 16px; }
+  footer .dentro { max-width: 760px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  footer .total { font-size: 15px; }
+  footer .total b { font-size: 20px; }
+  .cargando { position: fixed; inset: 0; background: rgba(255,255,255,.7); display: none; align-items: center; justify-content: center; z-index: 10; font-weight: bold; color: var(--azul); }
+  .cargando.visible { display: flex; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Viáticos por km</h1>
+  <div class="usuario" id="usuario">Cargando…</div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  <div class="dentro">
+    <div class="total">Total del día: <b id="totalDia">0,0 km</b> <span class="pendiente" id="faltan"></span></div>
+    <button class="primario" id="btnPdf" disabled>Descargar PDF</button>
+  </div>
+  <div class="dentro" id="avisoPdf"></div>
+</footer>
+
+<div class="cargando" id="cargando"><span id="cargandoTxt">Calculando…</span></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // -------------------------------------------------------------------------
+  // Estado
+  // -------------------------------------------------------------------------
+  var INFO = null;            // datos de iniciar()
+  var estado = { nombre: '', fecha: '', salidas: [] };
+  var busquedas = {};         // resultados de búsqueda por índice de salida (no se guardan)
+  var CLAVE_BORRADOR = 'vk-borrador-v1';
+  var CLAVE_NOMBRE = 'vk-nombre';
+  var CLAVE_RECIENTES = 'vk-recientes-v1';
+
+  function guardarLocal(clave, valor) {
+    try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) { /* sin almacenamiento */ }
+  }
+  function leerLocal(clave, defecto) {
+    try { var v = localStorage.getItem(clave); return v ? JSON.parse(v) : defecto; } catch (e) { return defecto; }
+  }
+
+  function salidaNueva() { return { motivo: '', paradas: [], resultado: null }; }
+
+  function guardarBorrador() {
+    // El mapa no se guarda (pesa mucho); al volver, se recalcula con un clic.
+    var copia = {
+      fecha: estado.fecha,
+      salidas: estado.salidas.map(function (s) {
+        return { motivo: s.motivo, paradas: s.paradas, resultado: null };
+      })
+    };
+    guardarLocal(CLAVE_BORRADOR, copia);
+    guardarLocal(CLAVE_NOMBRE, estado.nombre);
+  }
+
+  function agregarReciente(p) {
+    var lista = leerLocal(CLAVE_RECIENTES, []).filter(function (x) {
+      return !(x.lat === p.lat && x.lng === p.lng);
+    });
+    lista.unshift({ nombre: p.nombre, direccion: p.direccion, place_id: p.place_id, lat: p.lat, lng: p.lng });
+    guardarLocal(CLAVE_RECIENTES, lista.slice(0, 12));
+  }
+
+  // -------------------------------------------------------------------------
+  // Helpers de DOM (todo texto entra con textContent: nada de innerHTML con datos)
+  // -------------------------------------------------------------------------
+  function el(tag, attrs, hijos) {
+    var n = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (k) {
+      if (k === 'texto') n.textContent = attrs[k];
+      else if (k === 'clase') n.className = attrs[k];
+      else if (k.indexOf('on') === 0) n.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] !== undefined && attrs[k] !== null && attrs[k] !== false) n.setAttribute(k, attrs[k]);
+    });
+    (hijos || []).forEach(function (h) { if (h) n.appendChild(typeof h === 'string' ? document.createTextNode(h) : h); });
+    return n;
+  }
+
+  function km(n) {
+    return Number(n).toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
+  }
+
+  function cargando(si, texto) {
+    document.getElementById('cargandoTxt').textContent = texto || 'Calculando…';
+    document.getElementById('cargando').classList.toggle('visible', si);
+  }
+
+  function llamar(funcion, args, ok, falla) {
+    var r = google.script.run
+      .withSuccessHandler(ok)
+      .withFailureHandler(function (e) { (falla || alert)(e && e.message ? e.message : String(e)); });
+    r[funcion].apply(r, args);
+  }
+
+  function restarDias(fechaIso, dias) {
+    var p = fechaIso.split('-').map(Number);
+    var d = new Date(Date.UTC(p[0], p[1] - 1, p[2] - dias));
+    return d.toISOString().slice(0, 10);
+  }
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
+  function render() {
+    var app = document.getElementById('app');
+    app.innerHTML = '';
+
+    // Datos del día
+    var nombre = el('input', { type: 'text', value: estado.nombre, placeholder: 'Ej.: Juan Pérez', maxlength: 80,
+      oninput: function (e) { estado.nombre = e.target.value; guardarBorrador(); actualizarPie(); } });
+    var fecha = el('input', { type: 'date', value: estado.fecha, max: INFO.hoy, min: restarDias(INFO.hoy, INFO.diasAtras),
+      onchange: function (e) { estado.fecha = e.target.value; guardarBorrador(); actualizarPie(); } });
+    app.appendChild(el('div', { clase: 'tarjeta' }, [
+      el('div', { clase: 'fila' }, [
+        el('label', {}, ['Nombre y apellido', nombre]),
+        el('label', {}, ['Fecha de los recorridos', fecha])
+      ]),
+      el('div', { clase: 'aviso info' }, [
+        'Cargá todas las salidas del día. Cada salida arranca y termina en la oficina; solo cargás las paradas, ' +
+        'en el orden en que las hiciste. Al final descargá el PDF y subilo a tu solicitud en el Portal de Servicios.'
+      ])
+    ]));
+
+    estado.salidas.forEach(function (s, i) { app.appendChild(renderSalida(s, i)); });
+
+    if (estado.salidas.length < INFO.maxSalidas) {
+      app.appendChild(el('button', { onclick: function () {
+        estado.salidas.push(salidaNueva()); guardarBorrador(); render();
+      } }, ['+ Agregar otra salida']));
+    }
+    actualizarPie();
+  }
+
+  function renderSalida(s, i) {
+    var tarjeta = el('div', { clase: 'tarjeta salida' });
+
+    tarjeta.appendChild(el('div', { clase: 'salida-cab' }, [
+      el('h2', { texto: 'Salida ' + (i + 1) }),
+      estado.salidas.length > 1 ? el('button', { clase: 'link', onclick: function () {
+        if (!confirm('¿Borrar la salida ' + (i + 1) + '?')) return;
+        estado.salidas.splice(i, 1); busquedas = {}; guardarBorrador(); render();
+      } }, ['Borrar salida']) : null
+    ]));
+
+    tarjeta.appendChild(el('label', {}, ['Motivo / obra (opcional)',
+      el('input', { type: 'text', value: s.motivo, maxlength: 200, placeholder: 'Ej.: visita a obra Cerrillos',
+        oninput: function (e) { s.motivo = e.target.value; guardarBorrador(); } })
+    ]));
+
+    // Paradas
+    var lista = el('ol', { clase: 'paradas' });
+    lista.appendChild(filaOficina('Sale de'));
+    s.paradas.forEach(function (p, j) {
+      lista.appendChild(el('li', {}, [
+        el('span', { clase: 'num', texto: String(j + 1) }),
+        el('span', { clase: 'txt' }, [p.nombre, el('small', { texto: p.direccion })]),
+        el('button', { clase: 'icono', title: 'Subir', disabled: j === 0, onclick: function () { mover(s, j, -1); } }, ['↑']),
+        el('button', { clase: 'icono', title: 'Bajar', disabled: j === s.paradas.length - 1, onclick: function () { mover(s, j, 1); } }, ['↓']),
+        el('button', { clase: 'icono', title: 'Quitar', onclick: function () { s.paradas.splice(j, 1); cambioParadas(s); } }, ['✕'])
+      ]));
+    });
+    lista.appendChild(filaOficina('Vuelve a'));
+    tarjeta.appendChild(lista);
+
+    // Buscador
+    if (s.paradas.length < INFO.maxParadas) {
+      var input = el('input', { type: 'text', placeholder: 'Agregar parada: dirección o lugar en Salta', maxlength: 150,
+        onkeydown: function (e) { if (e.key === 'Enter') buscar(i, input.value); } });
+      tarjeta.appendChild(el('div', { clase: 'buscador' }, [
+        input,
+        el('button', { onclick: function () { buscar(i, input.value); } }, ['Buscar'])
+      ]));
+
+      var b = busquedas[i];
+      if (b && b.error) tarjeta.appendChild(el('div', { clase: 'aviso error', texto: b.error }));
+      if (b && b.resultados) {
+        if (b.resultados.length === 0) {
+          tarjeta.appendChild(el('div', { clase: 'aviso error',
+            texto: 'No encontramos ese lugar en Salta. Probá con calle y número, o agregá la localidad.' }));
+        } else {
+          var cont = el('div', { clase: 'resultados' });
+          b.resultados.forEach(function (r) {
+            cont.appendChild(el('button', { onclick: function () { agregarParada(i, r); } }, [
+              el('div', { texto: r.nombre }),
+              el('small', { texto: r.direccion + (r.aproximado ? ' · ubicación aproximada' : '') })
+            ]));
+          });
+          tarjeta.appendChild(cont);
+        }
+      }
+
+      var recientes = leerLocal(CLAVE_RECIENTES, []);
+      if (recientes.length) {
+        var chips = el('div', { clase: 'recientes' }, [el('span', { clase: 'et', texto: 'Usados hace poco:' })]);
+        recientes.slice(0, 8).forEach(function (r) {
+          chips.appendChild(el('button', { clase: 'chip', title: r.direccion, onclick: function () { agregarParada(i, r); } }, [r.nombre]));
+        });
+        tarjeta.appendChild(chips);
+      }
+    } else {
+      tarjeta.appendChild(el('div', { clase: 'pendiente', texto: 'Llegaste al máximo de ' + INFO.maxParadas + ' paradas.' }));
+    }
+
+    // Calcular / resultado
+    if (s.resultado) {
+      var res = el('div', { clase: 'resultado' }, [
+        el('div', {}, ['Recorrido: ', el('span', { clase: 'km', texto: km(s.resultado.km) }),
+          ' · aprox. ' + s.resultado.duracionMin + ' min de manejo']),
+        el('div', {}, [el('a', { href: s.resultado.linkMapa, target: '_blank', rel: 'noopener', texto: 'Ver en Google Maps' })])
+      ]);
+      if (s.resultado.mapaBase64) res.appendChild(el('img', { src: 'data:' + (s.resultado.mapaTipo || 'image/png') + ';base64,' + s.resultado.mapaBase64, alt: 'Mapa del recorrido' }));
+      tarjeta.appendChild(res);
+    } else if (s.paradas.length) {
+      tarjeta.appendChild(el('div', { style: 'margin-top:10px' }, [
+        el('button', { clase: 'primario', onclick: function () { calcular(i); } }, ['Calcular km'])
+      ]));
+    }
+    if (s.error) tarjeta.appendChild(el('div', { clase: 'aviso error', texto: s.error }));
+
+    return tarjeta;
+  }
+
+  function filaOficina(texto) {
+    return el('li', { clase: 'oficina' }, [
+      el('span', { clase: 'num', texto: 'O' }),
+      el('span', { clase: 'txt' }, [texto + ': ' + INFO.oficina])
+    ]);
+  }
+
+  function actualizarPie() {
+    var total = 0, faltan = 0;
+    estado.salidas.forEach(function (s) {
+      if (s.resultado) total += s.resultado.km; else faltan++;
+    });
+    document.getElementById('totalDia').textContent = km(total);
+    var vacias = estado.salidas.filter(function (s) { return s.paradas.length === 0; }).length;
+    var msg = '';
+    if (vacias) msg = '· hay salidas sin paradas';
+    else if (faltan) msg = '· falta calcular ' + faltan + (faltan === 1 ? ' salida' : ' salidas');
+    else if (estado.nombre.trim().length < 3) msg = '· falta tu nombre';
+    else if (!estado.fecha) msg = '· falta la fecha';
+    document.getElementById('faltan').textContent = msg;
+    document.getElementById('btnPdf').disabled = !!msg || estado.salidas.length === 0;
+  }
+
+  // -------------------------------------------------------------------------
+  // Acciones
+  // -------------------------------------------------------------------------
+  function cambioParadas(s) {
+    s.resultado = null; s.error = null;
+    guardarBorrador(); render();
+  }
+
+  function mover(s, j, delta) {
+    var p = s.paradas.splice(j, 1)[0];
+    s.paradas.splice(j + delta, 0, p);
+    cambioParadas(s);
+  }
+
+  function buscar(i, texto) {
+    texto = (texto || '').trim();
+    if (texto.length < 3) { busquedas[i] = { error: 'Escribí al menos 3 letras.' }; render(); return; }
+    cargando(true, 'Buscando…');
+    llamar('buscarLugares', [texto], function (resultados) {
+      cargando(false);
+      busquedas[i] = { resultados: resultados };
+      render();
+    }, function (msg) {
+      cargando(false);
+      busquedas[i] = { error: msg };
+      render();
+    });
+  }
+
+  function agregarParada(i, lugar) {
+    var s = estado.salidas[i];
+    if (s.paradas.length >= INFO.maxParadas) return;
+    s.paradas.push({ nombre: lugar.nombre, direccion: lugar.direccion, place_id: lugar.place_id, lat: lugar.lat, lng: lugar.lng });
+    agregarReciente(lugar);
+    delete busquedas[i];
+    cambioParadas(s);
+  }
+
+  function calcular(i) {
+    var s = estado.salidas[i];
+    cargando(true, 'Calculando recorrido…');
+    llamar('calcularSalida', [s.paradas], function (r) {
+      cargando(false);
+      s.resultado = r; s.error = null;
+      render();
+    }, function (msg) {
+      cargando(false);
+      s.error = msg;
+      render();
+    });
+  }
+
+  function descargarPdf() {
+    var aviso = document.getElementById('avisoPdf');
+    aviso.innerHTML = '';
+    cargando(true, 'Armando el PDF…');
+    var dia = {
+      nombre: estado.nombre,
+      fecha: estado.fecha,
+      salidas: estado.salidas.map(function (s) { return { motivo: s.motivo, paradas: s.paradas }; })
+    };
+    llamar('descargarPdf', [dia], function (pdf) {
+      cargando(false);
+      var bytes = atob(pdf.base64);
+      var arr = new Uint8Array(bytes.length);
+      for (var k = 0; k < bytes.length; k++) arr[k] = bytes.charCodeAt(k);
+      var url = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }));
+
+      var a = el('a', { href: url, download: pdf.nombreArchivo });
+      document.body.appendChild(a); a.click(); a.remove();
+
+      // Respaldo por si el navegador bloquea la descarga automática.
+      aviso.appendChild(el('div', { clase: 'aviso ok', style: 'width:100%' }, [
+        'PDF listo (' + km(pdf.kmTotal) + '). Si no se descargó solo, ',
+        el('a', { href: url, download: pdf.nombreArchivo, target: '_blank', texto: 'hacé clic acá' }),
+        '. Después subilo a tu solicitud en el Portal de Servicios. ',
+        el('button', { clase: 'link', onclick: nuevoDia }, ['Empezar un día nuevo'])
+      ]));
+    }, function (msg) {
+      cargando(false);
+      aviso.appendChild(el('div', { clase: 'aviso error', style: 'width:100%', texto: msg }));
+    });
+  }
+
+  function nuevoDia() {
+    if (!confirm('¿Borrar las salidas cargadas y empezar un día nuevo?')) return;
+    estado.salidas = [salidaNueva()];
+    estado.fecha = INFO.hoy;
+    busquedas = {};
+    document.getElementById('avisoPdf').innerHTML = '';
+    guardarBorrador(); render();
+  }
+
+  // -------------------------------------------------------------------------
+  // Arranque
+  // -------------------------------------------------------------------------
+  document.getElementById('btnPdf').addEventListener('click', descargarPdf);
+
+  llamar('iniciar', [], function (info) {
+    INFO = info;
+    document.getElementById('usuario').textContent = info.email;
+    var borrador = leerLocal(CLAVE_BORRADOR, null);
+    estado.nombre = leerLocal(CLAVE_NOMBRE, '') || '';
+    estado.fecha = (borrador && borrador.fecha && borrador.fecha <= info.hoy) ? borrador.fecha : info.hoy;
+    estado.salidas = (borrador && borrador.salidas && borrador.salidas.length) ? borrador.salidas : [salidaNueva()];
+    render();
+  }, function (msg) {
+    document.getElementById('usuario').textContent = '';
+    document.getElementById('app').appendChild(el('div', { clase: 'aviso error', texto: msg }));
+  });
+})();
+</script>
+</body>
+</html>
