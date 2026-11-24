@@ -80,15 +80,26 @@ Nunca crear una "Nueva implementación" para actualizar: eso genera otra URL y r
 Agregar el link (`https://viaticos.proyectonorte.com.ar` cuando esté el subdominio, o la URL de la web app) en el
 Portal de Servicios, para que se abra en una pestaña nueva.
 
-## 6. Subdominio viaticos.proyectonorte.com.ar (GoDaddy)
-Apps Script no admite dominios propios, así que el subdominio **reenvía** a la URL de la web app:
-GoDaddy → Mis productos → proyectonorte.com.ar → DNS → **Reenvío** → Agregar reenvío → **Subdominio**:
-- Subdominio: `viaticos`
-- Reenviar a: la URL de la web app (§4)
-- Tipo: **Temporal (302)**
-- Configuración: **Solo reenviar** (no "con enmascaramiento": mete la app en un marco y rompe el login y la descarga)
+## 6. Subdominio viaticos.proyectonorte.com.ar (Cloudflare Pages + CNAME en GoDaddy)
+Apps Script no admite dominios propios, así que el subdominio **redirige** (302) a la URL de la web app.
+El reenvío de GoDaddy no está disponible para este dominio (.com.ar con "DNS hosting"), por eso se usa
+Cloudflare Pages con la carpeta `redireccion/` del repo (`_redirects` + `index.html` de respaldo).
+El DNS sigue en GoDaddy: no hace falta mover el dominio a Cloudflare.
 
-Puede tardar hasta un par de horas. Probar `http://` y `https://viaticos.proyectonorte.com.ar`.
+Configuración actual (24/11/2026): proyecto de **Pages** `viaticos` conectado al repo `IT-ProyectoNorte/viaticos`,
+dirección interna `viaticos-1qi.pages.dev`.
+
+1. Cloudflare → **Workers & Pages** → proyecto de Pages `viaticos` → **Settings → Build**:
+   - Build command: **vacío**
+   - **Build output directory: `redireccion`** (importante: si queda en la raíz, Pages publica todo el repo)
+   - Root directory: vacío (raíz del repo)
+2. **Deployments → Retry deployment** (o hacer un push a `main`) y probar `https://viaticos-1qi.pages.dev`:
+   tiene que llevar a la web app, y `https://viaticos-1qi.pages.dev/README.md` tiene que dar 404.
+3. **Custom domains** → `viaticos.proyectonorte.com.ar`.
+4. GoDaddy → **Administrar registros DNS**: `CNAME` `viaticos` → `viaticos-1qi.pages.dev`. No tocar otros registros.
+
+Si cambia la URL de la web app: editar `redireccion/_redirects` e `index.html` y hacer push a `main`
+(Pages vuelve a publicar solo).
 
 ## Alternativa: clasp
 Con `clasp` (`npm install -g @google/clasp`, `clasp login`, `clasp create --type standalone --rootDir src`, `clasp push`)
