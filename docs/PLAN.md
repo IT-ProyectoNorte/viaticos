@@ -33,7 +33,9 @@ Marcar con [x] a medida que se completa. `[~]` = hecho en parte o falta probarlo
 - [x] Punto de paso por la colectora para la vuelta desde La Arbolada (tests de lógica pura OK)
 - [x] Versión 4 (25/11/2026): vuelta por la colectora desde La Arbolada (probado en /dev: finca el ceibal 18,9 → 12,9 km)
 - [x] Km desde OpenStreetMap (OpenRouteService, ruta más corta) con `ORS_API_KEY`; sin key sigue Google
-- [ ] Crear la cuenta de OpenRouteService, cargar `ORS_API_KEY`, probar en /dev (La Cercanía, La Arbolada, un recorrido largo) y publicar versión 5
+- [x] Versión 5 (25/11/2026): km desde OpenStreetMap con `ORS_API_KEY` cargada (probado: La Cercanía, La Arbolada, Plaza 9 de Julio)
+- [ ] Probar un recorrido largo fuera de San Lorenzo con OpenStreetMap
+- [ ] Decidir si se sacan los minutos estimados de la pantalla (con ruta más corta salen altos)
 
 ## Fase 3 — Salida
 - [x] `https://viaticos.proyectonorte.com.ar` publicado (25/11/2026): bienvenida con la estética de Proyecto Norte en Cloudflare Pages, entra sola a la web app (SETUP §6)

@@ -58,7 +58,7 @@ Para probar el mapa de Google en la demo local, agregar también `http://localho
 Con esta key los km salen de **OpenStreetMap**, con la **ruta en auto más corta** (OpenRouteService).
 Sin key, el sistema sigue calculando con Google Maps.
 
-1. Crear una cuenta gratuita en https://openrouteservice.org/dev/#/signup con un mail de la empresa.
+1. Crear una cuenta gratuita en https://openrouteservice.org (hoy redirige a playground.heigit.org) con un mail de la empresa.
 2. En el panel, **Request a token** (tipo *Standard*, gratuito: ~2.000 rutas por día).
 3. En Apps Script: **Configuración del proyecto → Propiedades del script → Agregar propiedad**:
    `ORS_API_KEY` = el token.
@@ -86,7 +86,7 @@ Copiar la **URL de la aplicación web** (termina en `/exec`).
 Para actualizarla sin que cambie la URL: **Implementar → Gestionar implementaciones → editar (lápiz) → Versión: Nueva versión**.
 Nunca crear una "Nueva implementación" para actualizar: eso genera otra URL y rompe el link de Humand y del subdominio.
 
-**Implementación actual** (versión 4 del 25/11/2026: vuelta por la colectora desde La Arbolada; la v3 trajo la estética de Proyecto Norte; misma URL desde la v1):
+**Implementación actual** (versión 5 del 25/11/2026: km desde OpenStreetMap; v4 colectora de La Arbolada, v3 estética de Proyecto Norte; misma URL desde la v1):
 - Proyecto: `https://script.google.com/home/projects/12wdH_i5GFZX28SokR1oyZjuXTtpALkKEuhwRRlGC_7ncCDETS49MrQnX/edit`
 - Web app: `https://script.google.com/a/macros/proyectonorte.com.ar/s/AKfycbxLFH1oeusuhtxGpbnVnJRRU5J354tytp2t-xq3M9VncBfFlD9AsAUBpZBh6AtlGwwP/exec`
 
