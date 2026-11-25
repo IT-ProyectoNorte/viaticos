@@ -1,3 +1,5 @@
-# Cloudflare Pages: todo viaticos.proyectonorte.com.ar va a la web app de Apps Script (302 = temporal).
-# Si alguna vez cambia la URL de la web app, se cambia acá y se vuelve a subir la carpeta.
-/*  https://script.google.com/a/macros/proyectonorte.com.ar/s/AKfycbxLFH1oeusuhtxGpbnVnJRRU5J354tytp2t-xq3M9VncBfFlD9AsAUBpZBh6AtlGwwP/exec  302
+# Cloudflare Pages.
+# La raíz (/) muestra index.html: bienvenida con la estética de Proyecto Norte que entra sola a la web app.
+# /entrar va directo a la web app (302 = temporal), sin pasar por la bienvenida.
+# Si cambia la URL de la web app: actualizarla acá y en index.html (3 lugares) y volver a subir la carpeta.
+/entrar  https://script.google.com/a/macros/proyectonorte.com.ar/s/AKfycbxLFH1oeusuhtxGpbnVnJRRU5J354tytp2t-xq3M9VncBfFlD9AsAUBpZBh6AtlGwwP/exec  302
