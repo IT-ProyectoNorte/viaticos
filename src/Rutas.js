@@ -360,7 +360,7 @@ function unirTramosDePaso_(tramos, puntos) {
   return unidos;
 }
 
-var ORS_URL = 'https://api.openrouteservice.org/v2/directions/driving-car';
+var ORS_URL = 'https://api.heigit.org/openrouteservice/v2/directions/driving-car'; // ex api.openrouteservice.org (responde 410)
 
 /**
  * Ruta en auto sobre OpenStreetMap con OpenRouteService, eligiendo la ruta más corta (no la más rápida).
@@ -381,7 +381,7 @@ function consultarOrs_(oficina, paradas, apiKey) {
         preference: 'shortest',
         units: 'm',
         language: 'es',
-        instructions: false,
+        instructions: true, // sin instrucciones ORS no devuelve los tramos (segments)
         geometry: true,
         radiuses: coords.map(function () { return 1000; }) // busca la calle más cercana hasta 1 km
       }),
