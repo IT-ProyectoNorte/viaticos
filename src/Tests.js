@@ -18,7 +18,7 @@ var TEST_TOLERANCIA = 0.02; // ±2 %
 function correrTests() {
   exigirDueno_();
   var tests = [test_formatos, test_validarParadas, test_filtroSalta, test_leerUbicacion, test_htmlPdf,
-    test_rutaBasica, test_busqueda, test_pdfCompleto];
+    test_puntosDePaso, test_rutaBasica, test_busqueda, test_pdfCompleto];
   var resultados = tests.map(function (t) {
     try {
       t();
@@ -142,6 +142,39 @@ function test_htmlPdf() {
   afirmar_(html.indexOf('data:image/png;base64,AAAA') >= 0, 'falta el mapa');
   afirmar_(html.indexOf('&amp;x=1') >= 0, 'el link tiene que ir escapado');
   console.log('test_htmlPdf OK');
+}
+
+function test_puntosDePaso() {
+  exigirDueno_();
+  var oficina = { lat: CONFIG.oficina.lat, lng: CONFIG.oficina.lng };
+  var reglas = CONFIG.puntosDePaso;
+  var arbolada = { lat: -24.8307205, lng: -65.5112799 };
+  var plaza = TEST_PUNTO_CONOCIDO;
+  var sanLuis = { lat: -24.865, lng: -65.505 }; // al sur del punto de paso
+
+  var p = armarPuntosRuta_(oficina, [arbolada], reglas);
+  afirmarIgual_(p.length, 2, 'Arbolada: parada + paso a la vuelta');
+  afirmar_(!p[0].esPaso && p[1].esPaso, 'el paso va después de La Arbolada');
+
+  p = armarPuntosRuta_(oficina, [plaza], reglas);
+  afirmarIgual_(p.length, 1, 'sin La Arbolada no hay punto de paso');
+
+  p = armarPuntosRuta_(oficina, [arbolada, plaza], reglas);
+  afirmarIgual_(p.length, 3, 'Arbolada → Plaza: paso entre las dos');
+  afirmar_(p[1].esPaso && !p[2].esPaso, 'orden Arbolada, paso, Plaza');
+
+  p = armarPuntosRuta_(oficina, [arbolada, sanLuis], reglas);
+  afirmarIgual_(p.length, 2, 'hacia el sur no se fuerza la colectora');
+
+  var unidos = unirTramosDePaso_([
+    { desde: 'O', hasta: 'A', metros: 6400, segundos: 600 },
+    { desde: 'A', hasta: 'P', metros: 3700, segundos: 400 },
+    { desde: 'P', hasta: 'O', metros: 2700, segundos: 300 }
+  ], [{ esPaso: false }, { esPaso: true }]);
+  afirmarIgual_(unidos.length, 2, 'un tramo por parada');
+  afirmarIgual_(unidos[1].metros, 6400, 'el tramo de vuelta suma el paso');
+  afirmarIgual_(unidos[1].hasta, 'O', 'el tramo de vuelta termina en la oficina');
+  console.log('test_puntosDePaso OK');
 }
 
 // ---------------------------------------------------------------------------

@@ -29,6 +29,7 @@ Gerente valida en Humand
 - **Solo paradas en la provincia de Salta.** El buscador descarta resultados de otras provincias y el servidor rechaza coordenadas fuera del rectángulo de Salta.
 - **Se respeta el orden en que el empleado cargó las paradas** (no se optimiza).
 - Los km salen de la **ruta en auto de Google Maps**. El empleado no los declara.
+- **Puntos de paso de la empresa** (`CONFIG.puntosDePaso`): corrigen desvíos que Google toma por defecto. Hoy hay uno: al salir de La Arbolada (radio 1,5 km) hacia un punto más al norte, la ruta va por la colectora oeste en vez de bajar a la rotonda de San Luis. No suman paradas ni filas al PDF.
 - **Un PDF por día**, con todas las salidas de ese día (hasta 8 salidas de hasta 10 paradas cada una).
 - El PDF muestra **solo km**, sin montos.
 - **No se guarda ningún registro.** Solo queda una línea por PDF en los registros de ejecución de Apps Script (mail, fecha, cantidad de salidas y km totales), que se borran solos según la retención de Google.
@@ -64,6 +65,7 @@ El borrador (fecha, salidas y paradas) se guarda en el navegador: si se cierra l
 ## 5. Cálculo de ruta (`Rutas.js`)
 
 - `Maps.newDirectionFinder()`: origen y destino = oficina, waypoints = paradas como `lat,lng`, modo `DRIVING`, `optimizeWaypoints=false`, región `ar`, idioma `es`.
+- Puntos de paso (`armarPuntosRuta_`, lógica pura): se agregan como waypoints y después `unirTramosDePaso_` une los dos tramos que Google parte en el punto de paso, así queda un tramo por parada. El link a Google Maps incluye los puntos de paso para mostrar la misma ruta.
 - km = suma de `legs[].distance.value` / 1000, redondeado a 1 decimal. Total del día = suma de los km de cada salida.
 - Mapa: `Maps.newStaticMap()` de 640×400 con la polyline y los marcadores (O = oficina, 1..9 = paradas, X = parada 10). Si la polyline es demasiado larga para la URL, se dibujan rectas entre las paradas.
 - Cache (`CacheService`, 6 h) de rutas, mapas y búsquedas, para no gastar cuota.

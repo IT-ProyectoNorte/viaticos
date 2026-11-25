@@ -18,6 +18,7 @@ Claude: si una decisión no está respondida, **preguntar**; no asumir.
 | 10 | Acceso | Link desde el Portal de Servicios de Humand |
 | 11 | Cuenta dueña del script | `it@proyectonorte.com.ar` |
 | 13 | Elegir parada en un mapa | Sí, con el mapa de Google (Maps JavaScript API con key de Google Cloud y facturación). Ver SETUP §2b |
+| 14 | Desvío de La Arbolada a la rotonda de San Luis | La vuelta desde La Arbolada (radio de 1,5 km) se fuerza por la colectora oeste con un punto de paso a la altura de Golohouse (`CONFIG.puntosDePaso`). Ida y vuelta pasa de 18,9 a 12,9 km (versión 4, 25/11/2026) |
 | 12 | Forma de subir el código | A mano en el editor de Apps Script (24/11/2026). `clasp login` mostró un redirect a `localhoost` (con doble "o") que no se pudo explicar, así que no se autorizó |
 
 ## Abiertas

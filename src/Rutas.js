@@ -230,10 +230,14 @@ function calcularRuta_(paradas, opciones) {
   var c = obtenerConfig_();
   var limpias = validarParadas_(paradas, c.maxParadas);
   var oficina = { lat: c.oficina.lat, lng: c.oficina.lng };
+  // Con orden optimizado no se sabe de antemano qué tramo sale de cada zona: los puntos de paso no aplican.
+  var puntos = c.optimizarOrden
+    ? limpias.map(function (p) { return { lat: p.lat, lng: p.lng, esPaso: false }; })
+    : armarPuntosRuta_(oficina, limpias, c.puntosDePaso);
 
   var clave = 'ruta:' + hash_(JSON.stringify({
     o: [oficina.lat, oficina.lng],
-    p: limpias.map(function (p) { return [p.lat, p.lng]; }),
+    p: puntos.map(function (p) { return [p.lat, p.lng, p.esPaso ? 1 : 0]; }),
     opt: c.optimizarOrden
   }));
   var cache = CacheService.getScriptCache();
@@ -243,14 +247,16 @@ function calcularRuta_(paradas, opciones) {
     ruta = JSON.parse(guardada);
     ruta.desdeCache = true;
   } else {
-    ruta = consultarDirecciones_(oficina, limpias, c.optimizarOrden);
+    ruta = consultarDirecciones_(oficina, limpias, c.optimizarOrden, puntos);
     ruta.desdeCache = false;
     try { cache.put(clave, JSON.stringify(ruta), CACHE_SEGUNDOS); } catch (e) { /* > 100 KB: no se cachea */ }
   }
   // Los nombres visibles pueden cambiar sin cambiar la ruta: siempre los del pedido actual.
   if (!c.optimizarOrden) ruta.paradas = limpias;
 
-  ruta.linkMapa = armarLinkMapa_(oficina, ruta.paradas);
+  ruta.conPuntosDePaso = puntos.some(function (p) { return p.esPaso; });
+  // El link lleva también los puntos de paso, para que Google Maps muestre la misma ruta y los mismos km.
+  ruta.linkMapa = armarLinkMapa_(oficina, c.optimizarOrden ? ruta.paradas : puntos);
   if (conMapa) ruta.mapaBase64 = mapaRutaBase64_(oficina, ruta.paradas, ruta.polyline);
   return ruta;
 }
@@ -283,8 +289,73 @@ function validarParadas_(paradas, maxParadas) {
   });
 }
 
+/** Distancia en línea recta en km (fórmula de haversine). */
+function distanciaKm_(a, b) {
+  var rad = Math.PI / 180;
+  var dLat = (b.lat - a.lat) * rad;
+  var dLng = (b.lng - a.lng) * rad;
+  var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+/**
+ * Lógica pura (testeable): puntos intermedios de la ruta, en orden, entre la salida y la vuelta a la oficina.
+ * Son las paradas ({esPaso: false}) más los puntos de paso de la empresa ({esPaso: true}).
+ * Un punto de paso se agrega antes de un destino cuando el tramo sale de una parada dentro de su zona,
+ * el destino está fuera de la zona y el destino queda más al norte que el punto de paso.
+ */
+function armarPuntosRuta_(oficina, paradas, reglas) {
+  var puntos = [];
+  var secuencia = [oficina].concat(paradas).concat([oficina]);
+  for (var i = 1; i < secuencia.length; i++) {
+    var desde = secuencia[i - 1];
+    var hasta = secuencia[i];
+    if (i > 1) { // la oficina nunca está dentro de una zona: solo se mira cuando se sale de una parada
+      (reglas || []).forEach(function (r) {
+        var centro = { lat: r.zona.lat, lng: r.zona.lng };
+        if (distanciaKm_(desde, centro) <= r.zona.radioKm &&
+            distanciaKm_(hasta, centro) > r.zona.radioKm &&
+            hasta.lat > r.paso.lat) {
+          puntos.push({ lat: r.paso.lat, lng: r.paso.lng, esPaso: true });
+        }
+      });
+    }
+    if (i < secuencia.length - 1) puntos.push({ lat: hasta.lat, lng: hasta.lng, esPaso: false });
+  }
+  return puntos;
+}
+
+/**
+ * Lógica pura (testeable): une los tramos que Google parte en un punto de paso, para que quede
+ * un tramo por cada parada (oficina → parada 1 → … → oficina), con sus km completos.
+ * @param {{desde, hasta, metros, segundos}[]} tramos uno por cada punto (paradas y pasos) + 1
+ * @param {{esPaso: boolean}[]} puntos
+ */
+function unirTramosDePaso_(tramos, puntos) {
+  var unidos = [];
+  var actual = null;
+  tramos.forEach(function (t, i) {
+    if (actual) {
+      actual.hasta = t.hasta;
+      actual.metros += t.metros;
+      actual.segundos += t.segundos;
+    } else {
+      actual = { desde: t.desde, hasta: t.hasta, metros: t.metros, segundos: t.segundos };
+    }
+    // Si este tramo termina en un punto de paso, sigue sumando al próximo.
+    if (!(puntos[i] && puntos[i].esPaso)) {
+      unidos.push(actual);
+      actual = null;
+    }
+  });
+  if (actual) unidos.push(actual);
+  return unidos;
+}
+
 /** Llama a DirectionFinder y arma el resultado. Lanza un error legible si Google no devuelve OK. */
-function consultarDirecciones_(oficina, paradas, optimizar) {
+function consultarDirecciones_(oficina, paradas, optimizar, puntos) {
+  puntos = puntos || paradas.map(function (p) { return { lat: p.lat, lng: p.lng, esPaso: false }; });
   var df = Maps.newDirectionFinder()
     .setOrigin(oficina.lat, oficina.lng)
     .setDestination(oficina.lat, oficina.lng)
@@ -292,7 +363,7 @@ function consultarDirecciones_(oficina, paradas, optimizar) {
     .setOptimizeWaypoints(!!optimizar)
     .setRegion('ar')
     .setLanguage('es');
-  paradas.forEach(function (p) { df.addWaypoint(p.lat, p.lng); });
+  puntos.forEach(function (p) { df.addWaypoint(p.lat, p.lng); });
 
   var resp;
   try {
@@ -317,16 +388,21 @@ function consultarDirecciones_(oficina, paradas, optimizar) {
   var orden = (optimizar && r.waypoint_order && r.waypoint_order.length === paradas.length)
     ? r.waypoint_order : paradas.map(function (_, i) { return i; });
 
+  var tramos = r.legs.map(function (l) {
+    return { desde: l.start_address, hasta: l.end_address, metros: l.distance.value, segundos: l.duration.value };
+  });
+  if (!optimizar) tramos = unirTramosDePaso_(tramos, puntos);
+
   var metros = 0;
   var segundos = 0;
-  var legs = r.legs.map(function (l) {
-    metros += l.distance.value;
-    segundos += l.duration.value;
+  var legs = tramos.map(function (t) {
+    metros += t.metros;
+    segundos += t.segundos;
     return {
-      desde: l.start_address,
-      hasta: l.end_address,
-      km: redondear_(l.distance.value / 1000, 1),
-      duracionMin: Math.round(l.duration.value / 60)
+      desde: t.desde,
+      hasta: t.hasta,
+      km: redondear_(t.metros / 1000, 1),
+      duracionMin: Math.round(t.segundos / 60)
     };
   });
 

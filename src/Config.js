@@ -23,7 +23,20 @@ var CONFIG = {
   maxParadas: 10,         // por salida
   maxSalidasPorDia: 8,
   diasAtrasPermitidos: 31, // hasta cuántos días hacia atrás se puede armar un PDF
-  maxResultadosBusqueda: 6
+  maxResultadosBusqueda: 6,
+
+  // Puntos de paso definidos por la empresa: corrigen desvíos innecesarios que Google Maps toma por defecto.
+  // Si un tramo sale de una parada dentro de la zona y va hacia un punto fuera de la zona que está más al
+  // norte que el punto de paso (por ejemplo, la vuelta a la oficina), la ruta pasa obligatoriamente por
+  // el punto de paso. No suma una parada: sus km quedan dentro del mismo tramo.
+  puntosDePaso: [
+    {
+      // Desde La Arbolada, Google baja hasta la rotonda de San Luis para volver. Se vuelve por la colectora.
+      nombre: 'Colectora (La Arbolada)',
+      zona: { lat: -24.8307205, lng: -65.5112799, radioKm: 1.5 },
+      paso: { lat: -24.8142, lng: -65.4825 } // colectora oeste de la Au. Circunvalación, a la altura de Golohouse
+    }
+  ]
 };
 
 /**
@@ -44,6 +57,7 @@ function obtenerConfig_() {
     maxSalidasPorDia: CONFIG.maxSalidasPorDia,
     diasAtrasPermitidos: CONFIG.diasAtrasPermitidos,
     maxResultadosBusqueda: CONFIG.maxResultadosBusqueda,
+    puntosDePaso: CONFIG.puntosDePaso,
     logoFileId: (props.getProperty('LOGO_FILE_ID') || '').trim(),
     mapsApiKey: (props.getProperty('MAPS_API_KEY') || '').trim()
   };

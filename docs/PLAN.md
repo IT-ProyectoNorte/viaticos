@@ -30,6 +30,9 @@ Marcar con [x] a medida que se completa. `[~]` = hecho en parte o falta probarlo
 - [ ] Revisar el PDF real con varias salidas (cortes de página); el logo ya sale (se toma de viaticos.proyectonorte.com.ar)
 - **Prueba:** 2 personas arman el día con 2 salidas cada una y suben el PDF a una solicitud de prueba en Humand.
 
+- [x] Punto de paso por la colectora para la vuelta desde La Arbolada (tests de lógica pura OK)
+- [x] Versión 4 (25/11/2026): vuelta por la colectora desde La Arbolada (probado en /dev: finca el ceibal 18,9 → 12,9 km)
+
 ## Fase 3 — Salida
 - [x] `https://viaticos.proyectonorte.com.ar` publicado (25/11/2026): bienvenida con la estética de Proyecto Norte en Cloudflare Pages, entra sola a la web app (SETUP §6)
 - [ ] Agregar `https://viaticos.proyectonorte.com.ar` en el Portal de Servicios de Humand

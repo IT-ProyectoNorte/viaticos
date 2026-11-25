@@ -187,7 +187,7 @@ function htmlPdf_(d, logoUri) {
   partes.push('<div class="pie"><b>Proyecto Norte</b> · Office Park, San Lorenzo Chico, Salta<br>' +
     'Generado automáticamente el ' + e(d.generado) + ' por el sistema de Viáticos por km. ' +
     'Los kilómetros corresponden a la ruta en auto de Google Maps desde la oficina, pasando por las paradas en el orden ' +
-    'cargado por el empleado, y de regreso a la oficina. No se aceptan PDF modificados a mano.</div>');
+    'cargado por el empleado (y por los puntos de paso definidos por la empresa), y de regreso a la oficina. No se aceptan PDF modificados a mano.</div>');
 
   partes.push('</body></html>');
   return partes.join('');
