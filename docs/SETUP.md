@@ -86,7 +86,7 @@ El reenvío de GoDaddy no está disponible para este dominio (.com.ar con "DNS h
 Cloudflare Pages con la carpeta `redireccion/` del repo (`_redirects` + `index.html` de respaldo).
 El DNS sigue en GoDaddy: no hace falta mover el dominio a Cloudflare.
 
-Configuración actual (24/11/2026): proyecto de **Pages** `viaticos` conectado al repo `IT-ProyectoNorte/viaticos`,
+Configuración actual (funcionando desde el 25/11/2026): proyecto de **Pages** `viaticos` conectado al repo `IT-ProyectoNorte/viaticos`,
 dirección interna `viaticos-1qi.pages.dev`.
 
 1. Cloudflare → **Workers & Pages** → proyecto de Pages `viaticos` → **Settings → Build**:

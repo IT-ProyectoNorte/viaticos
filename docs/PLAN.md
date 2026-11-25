@@ -29,8 +29,8 @@ Marcar con [x] a medida que se completa. `[~]` = hecho en parte o falta probarlo
 - **Prueba:** 2 personas arman el día con 2 salidas cada una y suben el PDF a una solicitud de prueba en Humand.
 
 ## Fase 3 — Salida
-- [ ] Subdominio `viaticos.proyectonorte.com.ar` con reenvío en GoDaddy (SETUP §6)
-- [ ] Agregar el link en el Portal de Servicios de Humand
+- [x] `https://viaticos.proyectonorte.com.ar` publicado (25/11/2026): bienvenida con la estética de Proyecto Norte en Cloudflare Pages, entra sola a la web app (SETUP §6)
+- [ ] Agregar `https://viaticos.proyectonorte.com.ar` en el Portal de Servicios de Humand
 - [ ] Instructivo de 1 página para empleados
 - [ ] Piloto de 1 semana con 3 a 5 personas
 - [ ] Ajustes y salida a todos
