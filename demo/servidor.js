@@ -259,7 +259,7 @@ function paginaIndex() {
   var banda = '<div style="background:#fef7e0;color:#7a4f01;padding:8px 16px;font-size:13px;border-bottom:1px solid #f9e1a8">' +
     '<b>Modo demo:</b> los km son aproximados y el mapa es un esquema. Buscá "plaza", "cerrillos", "aeropuerto" o "lerma", o pegá un link de Google Maps.</div>';
   return html
-    .replace('<base target="_top">', '<script>' + shim + '</script>')
+    .replace('<base target="_top">', '<meta name="viewport" content="width=device-width, initial-scale=1"><script>' + shim + '</script>')
     .replace('<main id="app">', banda + '<main id="app">');
 }
 

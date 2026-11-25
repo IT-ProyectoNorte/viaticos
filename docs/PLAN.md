@@ -23,6 +23,7 @@ Marcar con [x] a medida que se completa. `[~]` = hecho en parte o falta probarlo
 - [x] `Index.html`: salidas y paradas, búsqueda, links de Maps, "Elegir en el mapa" (Google), recientes, borrador, total y descarga
 - [x] `Pdf.js`: PDF del día con tramos, km, mapa de Google y total
 - [x] Publicada (v1, 24/11/2026) para cualquier usuario de proyectonorte.com.ar — ver SETUP §4
+- [x] Versión 2 (25/11/2026): estética de Proyecto Norte (logo, Montserrat, carbón y rojo), misma URL
 - [x] Probada de punta a punta en la web app publicada: mapa de Google, parada por clic, ruta real (22,7 km) y descarga del PDF
 - [ ] Probar la descarga en Edge y desde otra cuenta del dominio (no dueña)
 - [ ] Revisar el PDF con varias salidas (cortes de página) y con logo
