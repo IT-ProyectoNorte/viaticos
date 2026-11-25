@@ -19,6 +19,7 @@ Claude: si una decisión no está respondida, **preguntar**; no asumir.
 | 11 | Cuenta dueña del script | `it@proyectonorte.com.ar` |
 | 13 | Elegir parada en un mapa | Sí, con el mapa de Google (Maps JavaScript API con key de Google Cloud y facturación). Ver SETUP §2b |
 | 14 | Desvío de La Arbolada a la rotonda de San Luis | La vuelta desde La Arbolada (radio de 1,5 km) se fuerza por la colectora oeste con un punto de paso a la altura de Golohouse (`CONFIG.puntosDePaso`). Ida y vuelta pasa de 18,9 a 12,9 km (versión 4, 25/11/2026) |
+| 15 | Motor de km | Waze no se puede usar (no tiene servicio para terceros). Se prueba **OpenStreetMap con ruta más corta** (OpenRouteService), que coincidió con Waze: La Cercanía → oficina 1,6 km (Google 2,8) y La Arbolada → oficina 6,4 km sin punto de paso (25/11/2026). Pendiente de probar con la key |
 | 12 | Forma de subir el código | A mano en el editor de Apps Script (24/11/2026). `clasp login` mostró un redirect a `localhoost` (con doble "o") que no se pudo explicar, así que no se autorizó |
 
 ## Abiertas

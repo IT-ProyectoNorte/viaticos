@@ -18,7 +18,7 @@ var TEST_TOLERANCIA = 0.02; // ±2 %
 function correrTests() {
   exigirDueno_();
   var tests = [test_formatos, test_validarParadas, test_filtroSalta, test_leerUbicacion, test_htmlPdf,
-    test_puntosDePaso, test_rutaBasica, test_busqueda, test_pdfCompleto];
+    test_puntosDePaso, test_openStreetMap, test_rutaBasica, test_busqueda, test_pdfCompleto];
   var resultados = tests.map(function (t) {
     try {
       t();
@@ -175,6 +175,36 @@ function test_puntosDePaso() {
   afirmarIgual_(unidos[1].metros, 6400, 'el tramo de vuelta suma el paso');
   afirmarIgual_(unidos[1].hasta, 'O', 'el tramo de vuelta termina en la oficina');
   console.log('test_puntosDePaso OK');
+}
+
+function test_openStreetMap() {
+  exigirDueno_();
+  // Polyline: ejemplo de la documentación de Google.
+  var pts = decodificarPolyline_('_p~iF~ps|U_ulLnnqC');
+  afirmarIgual_(pts.length, 2, 'polyline: 2 puntos');
+  afirmarIgual_(pts[0][0], 38.5, 'polyline: lat del primer punto');
+  afirmarIgual_(pts[1][1], -120.95, 'polyline: lng del último punto');
+  afirmarIgual_(codificarPolyline_(pts), '_p~iF~ps|U_ulLnnqC', 'polyline: ida y vuelta');
+
+  var larga = [];
+  for (var i = 0; i < 3000; i++) larga.push([-24.79 - i * 0.00005, -65.47 + i * 0.00005]);
+  var corta = acortarPolyline_(codificarPolyline_(larga), 6000);
+  afirmar_(corta.length > 0 && corta.length <= 6000, 'polyline larga acortada');
+  var extremos = decodificarPolyline_(corta);
+  afirmarIgual_(extremos[0][0], larga[0][0], 'conserva el primer punto');
+
+  var ok = leerRespuestaOrs_(200, JSON.stringify({ routes: [{
+    geometry: 'abc', segments: [{ distance: 6400, duration: 600 }, { distance: 6450, duration: 620 }]
+  }] }), 1);
+  afirmarIgual_(ok.km, 12.9, 'ORS: km totales');
+  afirmarIgual_(ok.legs.length, 2, 'ORS: un tramo por parada + vuelta');
+  afirmarIgual_(ok.legs[1].km, 6.5, 'ORS: km del tramo');
+  afirmarError_(function () { leerRespuestaOrs_(429, '{}', 1); }, 'límite', 'ORS: cuota');
+  afirmarError_(function () { leerRespuestaOrs_(403, '{}', 1); }, 'clave', 'ORS: key rechazada');
+  afirmarError_(function () {
+    leerRespuestaOrs_(404, JSON.stringify({ error: { code: 2010, message: 'Could not find routable point within a radius of 1000.0 meters' } }), 1);
+  }, 'calle transitable', 'ORS: parada lejos de la calle');
+  console.log('test_openStreetMap OK');
 }
 
 // ---------------------------------------------------------------------------

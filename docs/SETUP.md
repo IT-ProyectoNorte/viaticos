@@ -53,6 +53,20 @@ con ellas solo funciona desde la web app y solo para mostrar el mapa.
 Para probar el mapa de Google en la demo local, agregar también `http://localhost:5178/*` a los referentes y correr
 `$env:MAPS_API_KEY='la-key'; node demo/servidor.js` (sin key, la demo usa un mapa de muestra de OpenStreetMap).
 
+## 2c. Km desde OpenStreetMap (ORS_API_KEY)
+
+Con esta key los km salen de **OpenStreetMap**, con la **ruta en auto más corta** (OpenRouteService).
+Sin key, el sistema sigue calculando con Google Maps.
+
+1. Crear una cuenta gratuita en https://openrouteservice.org/dev/#/signup con un mail de la empresa.
+2. En el panel, **Request a token** (tipo *Standard*, gratuito: ~2.000 rutas por día).
+3. En Apps Script: **Configuración del proyecto → Propiedades del script → Agregar propiedad**:
+   `ORS_API_KEY` = el token.
+4. Correr `validarConfig()`: tiene que mostrar "Km desde OpenStreetMap: OK" con los km a la Plaza 9 de Julio.
+
+Para volver a Google Maps alcanza con borrar la propiedad `ORS_API_KEY`.
+Si falta una calle en OpenStreetMap, se puede agregar desde https://www.openstreetmap.org (botón **Editar**).
+
 ## 3. Pruebas
 1. En el editor, elegir el archivo `Config`, la función `validarConfig` y **Ejecutar**.
    La primera vez pide permisos: revisar que la cuenta sea `it@` y aceptar.

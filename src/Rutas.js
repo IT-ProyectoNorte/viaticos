@@ -230,15 +230,18 @@ function calcularRuta_(paradas, opciones) {
   var c = obtenerConfig_();
   var limpias = validarParadas_(paradas, c.maxParadas);
   var oficina = { lat: c.oficina.lat, lng: c.oficina.lng };
-  // Con orden optimizado no se sabe de antemano qué tramo sale de cada zona: los puntos de paso no aplican.
-  var puntos = c.optimizarOrden
-    ? limpias.map(function (p) { return { lat: p.lat, lng: p.lng, esPaso: false }; })
-    : armarPuntosRuta_(oficina, limpias, c.puntosDePaso);
+  var motor = c.orsApiKey ? 'osm' : 'google';
+  // Los puntos de paso corrigen desvíos de Google. Con OpenStreetMap (ruta más corta) no hacen falta.
+  // Con orden optimizado no se sabe de antemano qué tramo sale de cada zona: tampoco aplican.
+  var puntos = (motor === 'google' && !c.optimizarOrden)
+    ? armarPuntosRuta_(oficina, limpias, c.puntosDePaso)
+    : limpias.map(function (p) { return { lat: p.lat, lng: p.lng, esPaso: false }; });
 
   var clave = 'ruta:' + hash_(JSON.stringify({
+    m: motor,
     o: [oficina.lat, oficina.lng],
     p: puntos.map(function (p) { return [p.lat, p.lng, p.esPaso ? 1 : 0]; }),
-    opt: c.optimizarOrden
+    opt: motor === 'google' && c.optimizarOrden
   }));
   var cache = CacheService.getScriptCache();
   var ruta;
@@ -247,16 +250,20 @@ function calcularRuta_(paradas, opciones) {
     ruta = JSON.parse(guardada);
     ruta.desdeCache = true;
   } else {
-    ruta = consultarDirecciones_(oficina, limpias, c.optimizarOrden, puntos);
+    ruta = motor === 'osm'
+      ? consultarOrs_(oficina, limpias, c.orsApiKey)
+      : consultarDirecciones_(oficina, limpias, c.optimizarOrden, puntos);
     ruta.desdeCache = false;
     try { cache.put(clave, JSON.stringify(ruta), CACHE_SEGUNDOS); } catch (e) { /* > 100 KB: no se cachea */ }
   }
   // Los nombres visibles pueden cambiar sin cambiar la ruta: siempre los del pedido actual.
-  if (!c.optimizarOrden) ruta.paradas = limpias;
+  if (motor === 'osm' || !c.optimizarOrden) ruta.paradas = limpias;
 
+  ruta.motor = motor;
   ruta.conPuntosDePaso = puntos.some(function (p) { return p.esPaso; });
-  // El link lleva también los puntos de paso, para que Google Maps muestre la misma ruta y los mismos km.
-  ruta.linkMapa = armarLinkMapa_(oficina, c.optimizarOrden ? ruta.paradas : puntos);
+  // Con OpenStreetMap no hay un link público que muestre la misma ruta (varias paradas, ruta más corta):
+  // queda solo el mapa. Con Google, el link lleva también los puntos de paso, para mostrar los mismos km.
+  ruta.linkMapa = motor === 'osm' ? '' : armarLinkMapa_(oficina, c.optimizarOrden ? ruta.paradas : puntos);
   if (conMapa) ruta.mapaBase64 = mapaRutaBase64_(oficina, ruta.paradas, ruta.polyline);
   return ruta;
 }
@@ -351,6 +358,140 @@ function unirTramosDePaso_(tramos, puntos) {
   });
   if (actual) unidos.push(actual);
   return unidos;
+}
+
+var ORS_URL = 'https://api.openrouteservice.org/v2/directions/driving-car';
+
+/**
+ * Ruta en auto sobre OpenStreetMap con OpenRouteService, eligiendo la ruta más corta (no la más rápida).
+ * Devuelve lo mismo que consultarDirecciones_: km, minutos, un tramo por parada y la polyline para el mapa.
+ */
+function consultarOrs_(oficina, paradas, apiKey) {
+  var coords = [[oficina.lng, oficina.lat]]
+    .concat(paradas.map(function (p) { return [p.lng, p.lat]; }))
+    .concat([[oficina.lng, oficina.lat]]);
+  var resp;
+  try {
+    resp = UrlFetchApp.fetch(ORS_URL, {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: apiKey, Accept: 'application/json' },
+      payload: JSON.stringify({
+        coordinates: coords,
+        preference: 'shortest',
+        units: 'm',
+        language: 'es',
+        instructions: false,
+        geometry: true,
+        radiuses: coords.map(function () { return 1000; }) // busca la calle más cercana hasta 1 km
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (e) {
+    console.error('OpenRouteService: ' + e.message);
+    throw new Error('No se pudo consultar el mapa en este momento. Probá de nuevo más tarde.');
+  }
+  return leerRespuestaOrs_(resp.getResponseCode(), resp.getContentText(), paradas.length);
+}
+
+/** Lógica pura (testeable): interpreta la respuesta de OpenRouteService. */
+function leerRespuestaOrs_(codigo, texto, cantidadParadas) {
+  var datos;
+  try { datos = JSON.parse(texto); } catch (e) { datos = null; }
+  if (codigo !== 200 || !datos || !datos.routes || !datos.routes.length) {
+    console.error('OpenRouteService ' + codigo + ': ' + String(texto).slice(0, 500));
+    if (codigo === 429) throw new Error('Se alcanzó el límite de consultas al mapa por hoy. Avisá a Administración.');
+    if (codigo === 401 || codigo === 403) throw new Error('El servicio de mapas rechazó la clave. Avisá a Administración.');
+    var msg = datos && datos.error && (datos.error.message || datos.error);
+    if (/routable point|could not find/i.test(String(msg))) {
+      throw new Error('Alguna de las paradas está lejos de una calle transitable en auto. Elegila de nuevo más cerca de la calle.');
+    }
+    throw new Error('No se pudo calcular la ruta (' + codigo + ').');
+  }
+  var r = datos.routes[0];
+  var segmentos = r.segments || [];
+  if (segmentos.length !== cantidadParadas + 1) {
+    throw new Error('No se pudo calcular la ruta (respuesta incompleta del mapa).');
+  }
+  var metros = 0;
+  var segundos = 0;
+  var legs = segmentos.map(function (s) {
+    metros += s.distance || 0;
+    segundos += s.duration || 0;
+    return { desde: '', hasta: '', km: redondear_((s.distance || 0) / 1000, 1), duracionMin: Math.round((s.duration || 0) / 60) };
+  });
+  return {
+    km: redondear_(metros / 1000, 1),
+    duracionMin: Math.round(segundos / 60),
+    legs: legs,
+    polyline: typeof r.geometry === 'string' ? r.geometry : ''
+  };
+}
+
+/** Lógica pura: decodifica una polyline (algoritmo de Google, precisión 5) a [[lat, lng], ...]. */
+function decodificarPolyline_(texto) {
+  var puntos = [];
+  var i = 0, lat = 0, lng = 0;
+  while (i < texto.length) {
+    var valores = [];
+    for (var k = 0; k < 2; k++) {
+      var resultado = 0, corrimiento = 0, b;
+      do {
+        b = texto.charCodeAt(i++) - 63;
+        resultado |= (b & 0x1f) << corrimiento;
+        corrimiento += 5;
+      } while (b >= 0x20 && i < texto.length);
+      valores.push((resultado & 1) ? ~(resultado >> 1) : (resultado >> 1));
+    }
+    lat += valores[0];
+    lng += valores[1];
+    puntos.push([lat / 1e5, lng / 1e5]);
+  }
+  return puntos;
+}
+
+/** Lógica pura: codifica [[lat, lng], ...] como polyline (precisión 5). */
+function codificarPolyline_(puntos) {
+  var salida = '';
+  var antLat = 0, antLng = 0;
+  function codificar(v) {
+    v = v < 0 ? ~(v << 1) : (v << 1);
+    var s = '';
+    while (v >= 0x20) {
+      s += String.fromCharCode((0x20 | (v & 0x1f)) + 63);
+      v >>= 5;
+    }
+    return s + String.fromCharCode(v + 63);
+  }
+  puntos.forEach(function (p) {
+    var la = Math.round(p[0] * 1e5), ln = Math.round(p[1] * 1e5);
+    salida += codificar(la - antLat) + codificar(ln - antLng);
+    antLat = la;
+    antLng = ln;
+  });
+  return salida;
+}
+
+/**
+ * Lógica pura: si la polyline es más larga que maxLargo, la simplifica salteando puntos muy cercanos
+ * (se queda con uno cada N metros, cada vez más) hasta que entre. Siempre conserva el primero y el último.
+ */
+function acortarPolyline_(polyline, maxLargo) {
+  if (!polyline || polyline.length <= maxLargo) return polyline;
+  var puntos = decodificarPolyline_(polyline);
+  for (var paso = 20; paso <= 2000; paso *= 1.5) {
+    var elegidos = [puntos[0]];
+    for (var i = 1; i < puntos.length - 1; i++) {
+      var ult = elegidos[elegidos.length - 1];
+      if (distanciaKm_({ lat: ult[0], lng: ult[1] }, { lat: puntos[i][0], lng: puntos[i][1] }) * 1000 >= paso) {
+        elegidos.push(puntos[i]);
+      }
+    }
+    elegidos.push(puntos[puntos.length - 1]);
+    var corta = codificarPolyline_(elegidos);
+    if (corta.length <= maxLargo) return corta;
+  }
+  return '';
 }
 
 /** Llama a DirectionFinder y arma el resultado. Lanza un error legible si Google no devuelve OK. */
@@ -457,6 +598,7 @@ function mapaRutaBase64_(oficina, paradas, polyline) {
     });
 
     mapa.setPathStyle(4, '0x1A73E8CC', null);
+    polyline = acortarPolyline_(polyline, MAX_LARGO_POLYLINE);
     if (polyline && polyline.length <= MAX_LARGO_POLYLINE) {
       mapa.addPath(polyline);
     } else {

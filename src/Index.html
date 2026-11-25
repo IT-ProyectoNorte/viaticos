@@ -353,9 +353,11 @@
     if (s.resultado) {
       var res = el('div', { clase: 'resultado' }, [
         el('div', {}, ['Recorrido: ', el('span', { clase: 'km', texto: km(s.resultado.km) }),
-          ' · aprox. ' + s.resultado.duracionMin + ' min de manejo']),
-        el('div', {}, [el('a', { href: s.resultado.linkMapa, target: '_blank', rel: 'noopener', texto: 'Ver en Google Maps' })])
+          ' · aprox. ' + s.resultado.duracionMin + ' min de manejo'])
       ]);
+      if (s.resultado.linkMapa) {
+        res.appendChild(el('div', {}, [el('a', { href: s.resultado.linkMapa, target: '_blank', rel: 'noopener', texto: 'Ver en Google Maps' })]));
+      }
       if (s.resultado.mapaBase64) res.appendChild(el('img', { src: 'data:' + (s.resultado.mapaTipo || 'image/png') + ';base64,' + s.resultado.mapaBase64, alt: 'Mapa del recorrido' }));
       tarjeta.appendChild(res);
     } else if (s.paradas.length) {

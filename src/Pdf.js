@@ -46,6 +46,7 @@ function prepararDia_(dia, email) {
       paradas: ruta.paradas,
       legs: ruta.legs,
       linkMapa: ruta.linkMapa,
+      motor: ruta.motor,
       mapaBase64: ruta.mapaBase64,
       mapaTipo: ruta.mapaTipo
     };
@@ -179,15 +180,22 @@ function htmlPdf_(d, logoUri) {
     if (s.mapaBase64) {
       html += '<img class="mapa" src="data:' + (s.mapaTipo || 'image/png') + ';base64,' + s.mapaBase64 + '">';
     }
-    html += '<div class="sub" style="margin-top:4px">Ver la ruta en Google Maps: <a href="' + e(s.linkMapa) + '">abrir mapa</a></div>';
+    if (s.linkMapa) {
+      html += '<div class="sub" style="margin-top:4px">Ver la ruta en Google Maps: <a href="' + e(s.linkMapa) + '">abrir mapa</a></div>';
+    }
     html += '</div>';
     partes.push(html);
   });
 
+  var conOsm = d.salidas.some(function (s) { return s.motor === 'osm'; });
   partes.push('<div class="pie"><b>Proyecto Norte</b> · Office Park, San Lorenzo Chico, Salta<br>' +
     'Generado automáticamente el ' + e(d.generado) + ' por el sistema de Viáticos por km. ' +
-    'Los kilómetros corresponden a la ruta en auto de Google Maps desde la oficina, pasando por las paradas en el orden ' +
-    'cargado por el empleado (y por los puntos de paso definidos por la empresa), y de regreso a la oficina. No se aceptan PDF modificados a mano.</div>');
+    (conOsm
+      ? 'Los kilómetros corresponden a la ruta en auto más corta sobre el mapa de OpenStreetMap (calculada con ' +
+        'OpenRouteService) desde la oficina, pasando por las paradas en el orden cargado por el empleado, y de regreso a la oficina. '
+      : 'Los kilómetros corresponden a la ruta en auto de Google Maps desde la oficina, pasando por las paradas en el orden ' +
+        'cargado por el empleado (y por los puntos de paso definidos por la empresa), y de regreso a la oficina. ') +
+    'No se aceptan PDF modificados a mano.</div>');
 
   partes.push('</body></html>');
   return partes.join('');
