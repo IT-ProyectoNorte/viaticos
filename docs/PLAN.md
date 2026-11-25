@@ -24,9 +24,10 @@ Marcar con [x] a medida que se completa. `[~]` = hecho en parte o falta probarlo
 - [x] `Pdf.js`: PDF del día con tramos, km, mapa de Google y total
 - [x] Publicada (v1, 24/11/2026) para cualquier usuario de proyectonorte.com.ar — ver SETUP §4
 - [x] Versión 2 (25/11/2026): estética de Proyecto Norte (logo, Montserrat, carbón y rojo), misma URL
+- [x] Versión 3 (25/11/2026): PDF con la estética de Proyecto Norte (logo a color, línea roja, total destacado)
 - [x] Probada de punta a punta en la web app publicada: mapa de Google, parada por clic, ruta real (22,7 km) y descarga del PDF
 - [ ] Probar la descarga en Edge y desde otra cuenta del dominio (no dueña)
-- [ ] Revisar el PDF con varias salidas (cortes de página) y con logo
+- [ ] Revisar el PDF real con varias salidas (cortes de página); el logo ya sale (se toma de viaticos.proyectonorte.com.ar)
 - **Prueba:** 2 personas arman el día con 2 salidas cada una y suben el PDF a una solicitud de prueba en Humand.
 
 ## Fase 3 — Salida

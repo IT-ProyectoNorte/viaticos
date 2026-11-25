@@ -141,7 +141,8 @@ function crearContexto() {
   };
 
   ctx.generarPdfDia_ = function (dia) {
-    var html = ctx.htmlPdf_(dia, '');
+    var logo = path.join(__dirname, '..', 'redireccion', 'logo-proyecto-norte.png');
+    var html = ctx.htmlPdf_(dia, fs.existsSync(logo) ? 'data:image/png;base64,' + fs.readFileSync(logo).toString('base64') : '');
     var nombreArchivo = 'Recorridos_' + dia.fecha + '_' + dia.email.split('@')[0] + '.pdf';
     return { nombreArchivo: nombreArchivo, base64: htmlAPdf(html).toString('base64'), kmTotal: dia.kmTotal };
   };

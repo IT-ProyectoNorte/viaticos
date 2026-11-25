@@ -79,7 +79,8 @@ El borrador (fecha, salidas y paradas) se guarda en el navegador: si se cierra l
 Se genera con HTML convertido a PDF (`Utilities.newBlob(html).getAs('application/pdf')`) y se devuelve al navegador en base64 para descargarlo. Nombre: `Recorridos_{yyyy-MM-dd}_{usuario}.pdf`.
 
 Contenido:
-- Encabezado con logo (opcional, `LOGO_FILE_ID`), título y "Viáticos por km · Proyecto Norte".
+- Encabezado con el logo de Proyecto Norte a color (de `LOGO_FILE_ID` si está cargado; si no, de `https://viaticos.proyectonorte.com.ar/logo-proyecto-norte.png`) y "DETALLE DE RECORRIDOS", con línea roja.
+- Estética: carbón y rojo, títulos en mayúsculas, Arial. Sin colores de fondo: el conversor de Apps Script los descarta.
 - Empleado, mail, fecha del recorrido, cantidad de salidas y oficina de salida y regreso.
 - **Total del día en km**, destacado.
 - Por salida: motivo, tabla de tramos (Desde → Hasta → km), total de la salida, mapa y link a Google Maps.
