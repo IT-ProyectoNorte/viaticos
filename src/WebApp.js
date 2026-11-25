@@ -24,7 +24,9 @@ function iniciar() {
     mapsApiKey: c.mapsApiKey,
     maxParadas: c.maxParadas,
     maxSalidas: c.maxSalidasPorDia,
-    diasAtras: c.diasAtrasPermitidos
+    diasAtras: c.diasAtrasPermitidos,
+    lugaresEmpresa: c.lugaresEmpresa,
+    maxMisLugares: c.maxMisLugares
   };
 }
 

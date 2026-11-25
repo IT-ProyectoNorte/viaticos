@@ -25,6 +25,12 @@ var CONFIG = {
   diasAtrasPermitidos: 31, // hasta cuántos días hacia atrás se puede armar un PDF
   maxResultadosBusqueda: 6,
 
+  // Lugares frecuentes de la empresa: aparecen como botones "De la empresa" en cada salida, para todos.
+  // Cada uno: { nombre: 'Obra La Arbolada', direccion: 'Finca El Ceibal, San Lorenzo', lat: -24.83, lng: -65.51 }
+  // Tienen que estar en la provincia de Salta (validarConfig() lo revisa). El orden de acá es el de la pantalla.
+  lugaresEmpresa: [],
+  maxMisLugares: 30, // lugares que cada empleado puede guardar con nombre en su navegador
+
   // Puntos de paso definidos por la empresa: corrigen desvíos innecesarios que Google Maps toma por defecto.
   // Solo se usan cuando los km salen de Google Maps (sin ORS_API_KEY): OpenStreetMap ya calcula la ruta por las avenidas.
   // Si un tramo sale de una parada dentro de la zona y va hacia un punto fuera de la zona que está más al
@@ -59,11 +65,32 @@ function obtenerConfig_() {
     diasAtrasPermitidos: CONFIG.diasAtrasPermitidos,
     maxResultadosBusqueda: CONFIG.maxResultadosBusqueda,
     puntosDePaso: CONFIG.puntosDePaso,
+    lugaresEmpresa: lugaresEmpresaValidos_(CONFIG.lugaresEmpresa),
+    maxMisLugares: CONFIG.maxMisLugares,
     // Con ORS_API_KEY los km salen de OpenStreetMap (OpenRouteService, ruta más rápida, igual que openstreetmap.org); sin key, de Google Maps.
     orsApiKey: (props.getProperty('ORS_API_KEY') || '').trim(),
     logoFileId: (props.getProperty('LOGO_FILE_ID') || '').trim(),
     mapsApiKey: (props.getProperty('MAPS_API_KEY') || '').trim()
   };
+}
+
+/**
+ * Lógica pura (testeable): deja solo los lugares de la empresa bien cargados (nombre y coordenadas en Salta),
+ * con el mismo formato que una parada.
+ */
+function lugaresEmpresaValidos_(lista) {
+  return (Array.isArray(lista) ? lista : []).filter(function (l) {
+    return l && textoLimpio_(l.nombre, 60) && isFinite(Number(l.lat)) && isFinite(Number(l.lng)) &&
+      dentroDeSalta_(Number(l.lat), Number(l.lng));
+  }).map(function (l) {
+    return {
+      nombre: textoLimpio_(l.nombre, 60),
+      direccion: textoLimpio_(l.direccion, 250),
+      place_id: '',
+      lat: redondear_(Number(l.lat), 6),
+      lng: redondear_(Number(l.lng), 6)
+    };
+  });
 }
 
 /** ¿Las coordenadas caen dentro del rectángulo de Salta? */
@@ -108,6 +135,10 @@ function validarConfig() {
   chequear(true, c.mapsApiKey
     ? 'Mapa para elegir paradas: key cargada (si el mapa no carga, revisar las restricciones de la key)'
     : 'Mapa para elegir paradas: sin MAPS_API_KEY, el botón "Elegir en el mapa" no se muestra (opcional)');
+
+  var descartados = (CONFIG.lugaresEmpresa || []).length - c.lugaresEmpresa.length;
+  chequear(descartados === 0, 'Lugares de la empresa: ' + c.lugaresEmpresa.length + ' cargados' +
+    (descartados ? ' (' + descartados + ' con nombre vacío o fuera de Salta, no se muestran)' : ''));
 
   if (c.orsApiKey) {
     try {

@@ -76,6 +76,15 @@
   .recientes { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .recientes span.et { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); margin-right: 2px; }
   .chip { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; padding: 5px 10px; background: var(--suave); border-color: var(--borde); color: var(--texto); }
+  .chip.empresa { background: #fff; border-color: var(--carbon); font-weight: 600; }
+  .chip.mio { background: #fff; border-color: var(--rojo); }
+  .chip-grupo { display: inline-flex; }
+  .chip-grupo .chip { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .chip-x { font-size: 11px; letter-spacing: 0; padding: 5px 8px; margin-left: -1px; background: #fff; border-color: var(--rojo); color: var(--gris); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .chip-x:hover:not(:disabled) { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+  button.icono.estrella { color: var(--rojo); }
+  .guardar-lugar { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin: -6px 0 14px; padding: 12px; background: var(--suave); border-left: 3px solid var(--rojo); }
+  .guardar-lugar label { flex: 1 1 220px; }
   .resultado { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--borde); color: var(--gris); font-size: 14px; }
   .resultado .km { font-size: 22px; font-weight: 700; color: var(--carbon); }
   .resultado a { color: var(--carbon); font-weight: 600; }
@@ -175,6 +184,8 @@
   var CLAVE_BORRADOR = 'vk-borrador-v1';
   var CLAVE_NOMBRE = 'vk-nombre';
   var CLAVE_RECIENTES = 'vk-recientes-v1';
+  var CLAVE_MIS_LUGARES = 'vk-mis-lugares-v1';
+  var guardandoLugar = null;  // { i: salida, j: parada, nombre } mientras se escribe el nombre
 
   function guardarLocal(clave, valor) {
     try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) { /* sin almacenamiento */ }
@@ -203,6 +214,29 @@
     });
     lista.unshift({ nombre: p.nombre, direccion: p.direccion, place_id: p.place_id, lat: p.lat, lng: p.lng });
     guardarLocal(CLAVE_RECIENTES, lista.slice(0, 12));
+  }
+
+  // Mis lugares: los guarda cada empleado con un nombre, en su navegador.
+  function mismoLugar(a, b) { return a.lat === b.lat && a.lng === b.lng; }
+  function leerMisLugares() { return leerLocal(CLAVE_MIS_LUGARES, []); }
+  function esMiLugar(p) { return leerMisLugares().some(function (x) { return mismoLugar(x, p); }); }
+
+  function guardarMiLugar(p, nombre) {
+    var lista = leerMisLugares();
+    var otros = lista.filter(function (x) { return !mismoLugar(x, p); });
+    if (otros.length === lista.length && lista.length >= INFO.maxMisLugares) {
+      alert('Ya tenés ' + INFO.maxMisLugares + ' lugares guardados. Borrá alguno (con la ✕) para guardar otro.');
+      return false;
+    }
+    otros.unshift({ nombre: nombre, direccion: p.direccion, place_id: p.place_id || '', lat: p.lat, lng: p.lng });
+    guardarLocal(CLAVE_MIS_LUGARES, otros);
+    return true;
+  }
+
+  function borrarMiLugar(lugar) {
+    if (!confirm('¿Borrar "' + lugar.nombre + '" de tus lugares?')) return;
+    guardarLocal(CLAVE_MIS_LUGARES, leerMisLugares().filter(function (x) { return !mismoLugar(x, lugar); }));
+    render();
   }
 
   // -------------------------------------------------------------------------
@@ -296,9 +330,13 @@
     var lista = el('ol', { clase: 'paradas' });
     lista.appendChild(filaOficina('Sale de'));
     s.paradas.forEach(function (p, j) {
+      var mio = esMiLugar(p);
       lista.appendChild(el('li', {}, [
         el('span', { clase: 'num', texto: String(j + 1) }),
         el('span', { clase: 'txt' }, [p.nombre, el('small', { texto: p.direccion })]),
+        el('button', { clase: 'icono' + (mio ? ' estrella' : ''),
+          title: mio ? 'Está en Mis lugares (tocá para cambiarle el nombre)' : 'Guardar en Mis lugares con un nombre',
+          onclick: function () { guardandoLugar = { i: i, j: j, nombre: p.nombre }; render(); } }, [mio ? '★' : '☆']),
         el('button', { clase: 'icono', title: 'Subir', disabled: j === 0, onclick: function () { mover(s, j, -1); } }, ['↑']),
         el('button', { clase: 'icono', title: 'Bajar', disabled: j === s.paradas.length - 1, onclick: function () { mover(s, j, 1); } }, ['↓']),
         el('button', { clase: 'icono', title: 'Quitar', onclick: function () { s.paradas.splice(j, 1); cambioParadas(s); } }, ['✕'])
@@ -306,6 +344,29 @@
     });
     lista.appendChild(filaOficina('Vuelve a'));
     tarjeta.appendChild(lista);
+
+    // Guardar una parada en Mis lugares con un nombre
+    var g = guardandoLugar;
+    if (g && g.i === i && s.paradas[g.j]) {
+      var entrada = el('input', { type: 'text', value: g.nombre, maxlength: 60, placeholder: 'Ej.: Obra Cerrillos',
+        oninput: function (e) { g.nombre = e.target.value; },
+        onkeydown: function (e) { if (e.key === 'Enter') confirmarLugar(); if (e.key === 'Escape') { guardandoLugar = null; render(); } } });
+      var confirmarLugar = function () {
+        var nombre = (g.nombre || '').replace(/\s+/g, ' ').trim();
+        if (nombre.length < 2) { entrada.focus(); return; }
+        var p = s.paradas[g.j];
+        if (!guardarMiLugar(p, nombre)) return;
+        p.nombre = nombre; // la parada toma el nombre elegido (no cambia la ruta)
+        guardandoLugar = null;
+        guardarBorrador(); render();
+      };
+      tarjeta.appendChild(el('div', { clase: 'guardar-lugar' }, [
+        el('label', {}, ['Nombre para guardar en Mis lugares', entrada]),
+        el('button', { clase: 'primario', onclick: confirmarLugar }, ['Guardar']),
+        el('button', { clase: 'link', onclick: function () { guardandoLugar = null; render(); } }, ['Cancelar'])
+      ]));
+      setTimeout(function () { entrada.focus(); entrada.select(); }, 0);
+    }
 
     // Buscador
     if (s.paradas.length < INFO.maxParadas) {
@@ -337,13 +398,42 @@
         }
       }
 
-      var recientes = leerLocal(CLAVE_RECIENTES, []);
+      // Lugares con nombre: los de la empresa (para todos) y los míos (de este navegador)
+      var empresa = INFO.lugaresEmpresa || [];
+      if (empresa.length) {
+        var filaEmp = el('div', { clase: 'recientes' }, [el('span', { clase: 'et', texto: 'De la empresa:' })]);
+        empresa.forEach(function (r) {
+          filaEmp.appendChild(el('button', { clase: 'chip empresa', title: r.direccion, onclick: function () { agregarParada(i, r); } }, [r.nombre]));
+        });
+        tarjeta.appendChild(filaEmp);
+      }
+      var mios = leerMisLugares();
+      if (mios.length) {
+        var filaMia = el('div', { clase: 'recientes' }, [el('span', { clase: 'et', texto: 'Mis lugares:' })]);
+        mios.forEach(function (r) {
+          filaMia.appendChild(el('span', { clase: 'chip-grupo' }, [
+            el('button', { clase: 'chip mio', title: r.direccion, onclick: function () { agregarParada(i, r); } }, [r.nombre]),
+            el('button', { clase: 'chip-x', title: 'Borrar de Mis lugares', 'aria-label': 'Borrar ' + r.nombre,
+              onclick: function () { borrarMiLugar(r); } }, ['✕'])
+          ]));
+        });
+        tarjeta.appendChild(filaMia);
+      }
+
+      // Usados hace poco: sin repetir los que ya tienen nombre arriba
+      var conNombre = empresa.concat(mios);
+      var recientes = leerLocal(CLAVE_RECIENTES, []).filter(function (r) {
+        return !conNombre.some(function (x) { return mismoLugar(x, r); });
+      });
       if (recientes.length) {
         var chips = el('div', { clase: 'recientes' }, [el('span', { clase: 'et', texto: 'Usados hace poco:' })]);
         recientes.slice(0, 8).forEach(function (r) {
           chips.appendChild(el('button', { clase: 'chip', title: r.direccion, onclick: function () { agregarParada(i, r); } }, [r.nombre]));
         });
         tarjeta.appendChild(chips);
+      }
+      if (!mios.length && s.paradas.length) {
+        tarjeta.appendChild(el('div', { clase: 'ayuda', texto: 'Tip: tocá ☆ en una parada para guardarla con un nombre en "Mis lugares".' }));
       }
     } else {
       tarjeta.appendChild(el('div', { clase: 'pendiente', texto: 'Llegaste al máximo de ' + INFO.maxParadas + ' paradas.' }));
@@ -398,6 +488,7 @@
   // -------------------------------------------------------------------------
   function cambioParadas(s) {
     s.resultado = null; s.error = null;
+    guardandoLugar = null; // los índices de las paradas pueden haber cambiado
     guardarBorrador(); render();
   }
 

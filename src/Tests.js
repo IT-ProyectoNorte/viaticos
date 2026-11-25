@@ -18,7 +18,7 @@ var TEST_TOLERANCIA = 0.02; // ±2 %
 function correrTests() {
   exigirDueno_();
   var tests = [test_formatos, test_validarParadas, test_filtroSalta, test_leerUbicacion, test_htmlPdf,
-    test_puntosDePaso, test_openStreetMap, test_rutaBasica, test_busqueda, test_pdfCompleto];
+    test_puntosDePaso, test_lugaresEmpresa, test_openStreetMap, test_rutaBasica, test_busqueda, test_pdfCompleto];
   var resultados = tests.map(function (t) {
     try {
       t();
@@ -175,6 +175,22 @@ function test_puntosDePaso() {
   afirmarIgual_(unidos[1].metros, 6400, 'el tramo de vuelta suma el paso');
   afirmarIgual_(unidos[1].hasta, 'O', 'el tramo de vuelta termina en la oficina');
   console.log('test_puntosDePaso OK');
+}
+
+function test_lugaresEmpresa() {
+  exigirDueno_();
+  var ok = lugaresEmpresaValidos_([
+    { nombre: '  Obra   La Arbolada ', direccion: 'Finca El Ceibal', lat: -24.8307205, lng: '-65.5112799' },
+    { nombre: '', lat: -24.8, lng: -65.4 },                       // sin nombre
+    { nombre: 'Buenos Aires', lat: -34.6037, lng: -58.3816 },     // fuera de Salta
+    { nombre: 'Sin coordenadas', direccion: 'x' },
+    null
+  ]);
+  afirmarIgual_(ok.length, 1, 'solo queda el lugar bien cargado');
+  afirmarIgual_(ok[0].nombre, 'Obra La Arbolada', 'nombre limpio');
+  afirmarIgual_(ok[0].lng, -65.51128, 'lng como número redondeado');
+  afirmarIgual_(lugaresEmpresaValidos_(undefined).length, 0, 'sin lista');
+  console.log('test_lugaresEmpresa OK');
 }
 
 function test_openStreetMap() {

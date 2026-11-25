@@ -36,6 +36,8 @@ Marcar con [x] a medida que se completa. `[~]` = hecho en parte o falta probarlo
 - [x] Versión 5 (25/11/2026): km desde OpenStreetMap con `ORS_API_KEY` cargada (probado: La Cercanía, La Arbolada, Plaza 9 de Julio)
 - [ ] Probar un recorrido largo fuera de San Lorenzo con OpenStreetMap
 - [x] Ruta más rápida en vez de la más corta (25/11/2026): ida y vuelta por avenidas, como openstreetmap.org. Probado en /dev: finca el ceibal 13,5 km, La Cercanía 3,2 km, Bº FEPUSA 26,4 km (antes 21,6 con ida por calles internas). Publicada como versión 6
+- [x] Lugares con nombre: "De la empresa" (`CONFIG.lugaresEmpresa`) y "Mis lugares" de cada empleado (☆). Cargado en /dev
+- [ ] Cargar la lista de lugares de la empresa y publicar versión 7
 
 ## Fase 3 — Salida
 - [x] `https://viaticos.proyectonorte.com.ar` publicado (25/11/2026): bienvenida con la estética de Proyecto Norte en Cloudflare Pages, entra sola a la web app (SETUP §6)
