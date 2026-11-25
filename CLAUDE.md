@@ -9,7 +9,7 @@ con los km, que después sube a su solicitud en el Portal de Servicios de Humand
 - **Carga diaria, un PDF por día** con todas las salidas de ese día.
 - **Toda salida sale de la oficina y vuelve a la oficina** (Office Park, San Lorenzo Chico, Salta). El empleado solo carga las paradas.
 - **Solo paradas en la provincia de Salta.** **Se respeta el orden cargado** (no se optimiza).
-- Los km salen de la **ruta en auto más corta de OpenStreetMap** (OpenRouteService; sin key, de Google Maps), nunca los declara el empleado. El servidor recalcula todo antes de armar el PDF.
+- Los km salen de la **ruta en auto más rápida de OpenStreetMap** (igual que openstreetmap.org) (OpenRouteService; sin key, de Google Maps), nunca los declara el empleado. El servidor recalcula todo antes de armar el PDF.
 - El PDF muestra **solo km** (sin montos) e incluye el mapa de cada salida.
 - **No se guarda registro.** El gerente valida en Humand; Administración paga con la tarifa vigente fuera del sistema.
 - El link a la web app está en el Portal de Servicios de Humand. Se usa mayormente desde la compu.

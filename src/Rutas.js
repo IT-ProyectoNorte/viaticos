@@ -231,14 +231,14 @@ function calcularRuta_(paradas, opciones) {
   var limpias = validarParadas_(paradas, c.maxParadas);
   var oficina = { lat: c.oficina.lat, lng: c.oficina.lng };
   var motor = c.orsApiKey ? 'osm' : 'google';
-  // Los puntos de paso corrigen desvíos de Google. Con OpenStreetMap (ruta más corta) no hacen falta.
+  // Los puntos de paso corrigen desvíos de Google. Con OpenStreetMap no hacen falta.
   // Con orden optimizado no se sabe de antemano qué tramo sale de cada zona: tampoco aplican.
   var puntos = (motor === 'google' && !c.optimizarOrden)
     ? armarPuntosRuta_(oficina, limpias, c.puntosDePaso)
     : limpias.map(function (p) { return { lat: p.lat, lng: p.lng, esPaso: false }; });
 
   var clave = 'ruta:' + hash_(JSON.stringify({
-    m: motor,
+    m: motor === 'osm' ? 'osm-' + ORS_PREFERENCIA : motor, // si cambia la preferencia, no se reusa la cache vieja
     o: [oficina.lat, oficina.lng],
     p: puntos.map(function (p) { return [p.lat, p.lng, p.esPaso ? 1 : 0]; }),
     opt: motor === 'google' && c.optimizarOrden
@@ -261,7 +261,7 @@ function calcularRuta_(paradas, opciones) {
 
   ruta.motor = motor;
   ruta.conPuntosDePaso = puntos.some(function (p) { return p.esPaso; });
-  // Con OpenStreetMap no hay un link público que muestre la misma ruta (varias paradas, ruta más corta):
+  // Con OpenStreetMap no hay un link público que muestre la misma ruta (varias paradas):
   // queda solo el mapa. Con Google, el link lleva también los puntos de paso, para mostrar los mismos km.
   ruta.linkMapa = motor === 'osm' ? '' : armarLinkMapa_(oficina, c.optimizarOrden ? ruta.paradas : puntos);
   if (conMapa) ruta.mapaBase64 = mapaRutaBase64_(oficina, ruta.paradas, ruta.polyline);
@@ -360,10 +360,12 @@ function unirTramosDePaso_(tramos, puntos) {
   return unidos;
 }
 
+var ORS_PREFERENCIA = 'fastest'; // 'fastest' = como openstreetmap.org; 'shortest' iba por calles internas
 var ORS_URL = 'https://api.heigit.org/openrouteservice/v2/directions/driving-car'; // ex api.openrouteservice.org (responde 410)
 
 /**
- * Ruta en auto sobre OpenStreetMap con OpenRouteService, eligiendo la ruta más corta (no la más rápida).
+ * Ruta en auto sobre OpenStreetMap con OpenRouteService, eligiendo la ruta más rápida (la misma lógica que
+ * openstreetmap.org). La "más corta" mete al auto por calles internas y no coincide con lo que se maneja.
  * Devuelve lo mismo que consultarDirecciones_: km, minutos, un tramo por parada y la polyline para el mapa.
  */
 function consultarOrs_(oficina, paradas, apiKey) {
@@ -378,7 +380,7 @@ function consultarOrs_(oficina, paradas, apiKey) {
       headers: { Authorization: apiKey, Accept: 'application/json' },
       payload: JSON.stringify({
         coordinates: coords,
-        preference: 'shortest',
+        preference: ORS_PREFERENCIA,
         units: 'm',
         language: 'es',
         instructions: true, // sin instrucciones ORS no devuelve los tramos (segments)

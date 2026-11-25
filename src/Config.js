@@ -26,7 +26,7 @@ var CONFIG = {
   maxResultadosBusqueda: 6,
 
   // Puntos de paso definidos por la empresa: corrigen desvíos innecesarios que Google Maps toma por defecto.
-  // Solo se usan cuando los km salen de Google Maps (sin ORS_API_KEY): OpenStreetMap ya calcula la ruta más corta.
+  // Solo se usan cuando los km salen de Google Maps (sin ORS_API_KEY): OpenStreetMap ya calcula la ruta por las avenidas.
   // Si un tramo sale de una parada dentro de la zona y va hacia un punto fuera de la zona que está más al
   // norte que el punto de paso (por ejemplo, la vuelta a la oficina), la ruta pasa obligatoriamente por
   // el punto de paso. No suma una parada: sus km quedan dentro del mismo tramo.
@@ -59,7 +59,7 @@ function obtenerConfig_() {
     diasAtrasPermitidos: CONFIG.diasAtrasPermitidos,
     maxResultadosBusqueda: CONFIG.maxResultadosBusqueda,
     puntosDePaso: CONFIG.puntosDePaso,
-    // Con ORS_API_KEY los km salen de OpenStreetMap (OpenRouteService, ruta más corta); sin key, de Google Maps.
+    // Con ORS_API_KEY los km salen de OpenStreetMap (OpenRouteService, ruta más rápida, igual que openstreetmap.org); sin key, de Google Maps.
     orsApiKey: (props.getProperty('ORS_API_KEY') || '').trim(),
     logoFileId: (props.getProperty('LOGO_FILE_ID') || '').trim(),
     mapsApiKey: (props.getProperty('MAPS_API_KEY') || '').trim()

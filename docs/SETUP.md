@@ -55,7 +55,7 @@ Para probar el mapa de Google en la demo local, agregar también `http://localho
 
 ## 2c. Km desde OpenStreetMap (ORS_API_KEY)
 
-Con esta key los km salen de **OpenStreetMap**, con la **ruta en auto más corta** (OpenRouteService).
+Con esta key los km salen de **OpenStreetMap**, con la **ruta en auto más rápida** (OpenRouteService, igual que openstreetmap.org).
 Sin key, el sistema sigue calculando con Google Maps.
 
 1. Crear una cuenta gratuita en https://openrouteservice.org (hoy redirige a playground.heigit.org) con un mail de la empresa.

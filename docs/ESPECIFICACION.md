@@ -28,7 +28,7 @@ Gerente valida en Humand
 - **Toda salida arranca y termina en la oficina**: Office Park, San Lorenzo Chico, Salta (`-24.7979909, -65.4723851`).
 - **Solo paradas en la provincia de Salta.** El buscador descarta resultados de otras provincias y el servidor rechaza coordenadas fuera del rectángulo de Salta.
 - **Se respeta el orden en que el empleado cargó las paradas** (no se optimiza).
-- Los km salen de la **ruta en auto más corta sobre OpenStreetMap** (OpenRouteService, `ORS_API_KEY`). Sin esa key, de la ruta en auto de Google Maps. El empleado no los declara.
+- Los km salen de la **ruta en auto más rápida sobre OpenStreetMap** (igual que openstreetmap.org) (OpenRouteService, `ORS_API_KEY`). Sin esa key, de la ruta en auto de Google Maps. El empleado no los declara.
 - **Puntos de paso de la empresa** (solo con Google Maps) (`CONFIG.puntosDePaso`): corrigen desvíos que Google toma por defecto. Hoy hay uno: al salir de La Arbolada (radio 1,5 km) hacia un punto más al norte, la ruta va por la colectora oeste en vez de bajar a la rotonda de San Luis. No suman paradas ni filas al PDF.
 - **Un PDF por día**, con todas las salidas de ese día (hasta 8 salidas de hasta 10 paradas cada una).
 - El PDF muestra **solo km**, sin montos.
@@ -65,7 +65,7 @@ El borrador (fecha, salidas y paradas) se guarda en el navegador: si se cierra l
 ## 5. Cálculo de ruta (`Rutas.js`)
 
 - `Maps.newDirectionFinder()`: origen y destino = oficina, waypoints = paradas como `lat,lng`, modo `DRIVING`, `optimizeWaypoints=false`, región `ar`, idioma `es`.
-- **Con `ORS_API_KEY` (OpenStreetMap):** `consultarOrs_` pide a OpenRouteService (`driving-car`, `preference: shortest`) la ruta oficina → paradas → oficina; `leerRespuestaOrs_` (lógica pura) arma km y un tramo por parada. La foto del mapa sigue siendo de Google Static Maps con esa ruta (la polyline se simplifica con `acortarPolyline_` si es larga). No hay link a la ruta: OpenStreetMap no tiene uno público con varias paradas.
+- **Con `ORS_API_KEY` (OpenStreetMap):** `consultarOrs_` pide a OpenRouteService (`driving-car`, `preference: fastest`; la "más corta" metía el auto por calles internas) la ruta oficina → paradas → oficina; `leerRespuestaOrs_` (lógica pura) arma km y un tramo por parada. La foto del mapa sigue siendo de Google Static Maps con esa ruta (la polyline se simplifica con `acortarPolyline_` si es larga). No hay link a la ruta: OpenStreetMap no tiene uno público con varias paradas.
 - Puntos de paso (`armarPuntosRuta_`, lógica pura): se agregan como waypoints y después `unirTramosDePaso_` une los dos tramos que Google parte en el punto de paso, así queda un tramo por parada. El link a Google Maps incluye los puntos de paso para mostrar la misma ruta.
 - km = suma de `legs[].distance.value` / 1000, redondeado a 1 decimal. Total del día = suma de los km de cada salida.
 - Mapa: `Maps.newStaticMap()` de 640×400 con la polyline y los marcadores (O = oficina, 1..9 = paradas, X = parada 10). Si la polyline es demasiado larga para la URL, se dibujan rectas entre las paradas.
