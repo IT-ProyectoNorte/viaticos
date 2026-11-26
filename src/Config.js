@@ -28,7 +28,17 @@ var CONFIG = {
   // Lugares frecuentes de la empresa: aparecen como botones "De la empresa" en cada salida, para todos.
   // Cada uno: { nombre: 'Obra La Arbolada', direccion: 'Finca El Ceibal, San Lorenzo', lat: -24.83, lng: -65.51 }
   // Tienen que estar en la provincia de Salta (validarConfig() lo revisa). El orden de acá es el de la pantalla.
-  lugaresEmpresa: [],
+  lugaresEmpresa: [
+    { nombre: 'Las Achiras', direccion: '', lat: -24.838277, lng: -65.468244 },
+    { nombre: 'San Luis Chico', direccion: '', lat: -24.844372, lng: -65.504609 },
+    { nombre: 'Las Chuñas', direccion: '', lat: -24.796712, lng: -65.484869 },
+    { nombre: 'Tribeca', direccion: '', lat: -24.795133, lng: -65.483029 },
+    { nombre: 'Hilton', direccion: '', lat: -24.795693, lng: -65.484193 },
+    { nombre: 'Chacras de Manantial', direccion: '', lat: -24.838393, lng: -65.607519 },
+    { nombre: 'Chacra de Santa María', direccion: '', lat: -24.785731, lng: -65.502501 },
+    { nombre: 'La Aguada', direccion: '', lat: -24.786507, lng: -65.501845 },
+    { nombre: 'El Retiro', direccion: '', lat: -24.713802, lng: -65.480717 }
+  ],
   maxMisLugares: 30, // lugares que cada empleado puede guardar con nombre en su navegador
 
   // Puntos de paso definidos por la empresa: corrigen desvíos innecesarios que Google Maps toma por defecto.
