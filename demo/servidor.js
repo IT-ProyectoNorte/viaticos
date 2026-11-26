@@ -68,7 +68,7 @@ function crearContexto() {
   ctx.iniciar = function () {
     var info = iniciarReal();
     info.mapaDemo = !info.mapsApiKey;
-    // Ejemplos de "De la empresa" solo para la demo (los reales van en CONFIG.lugaresEmpresa).
+    // Ejemplos de "Lugares más concurridos" solo para la demo (los reales van en CONFIG.lugaresEmpresa).
     if (!info.lugaresEmpresa.length) {
       info.lugaresEmpresa = ctx.lugaresEmpresaValidos_([
         { nombre: 'Ejemplo: Obra La Arbolada', direccion: 'Finca El Ceibal, San Lorenzo', lat: -24.8307205, lng: -65.5112799 },

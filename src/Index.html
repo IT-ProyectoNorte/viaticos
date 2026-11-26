@@ -401,7 +401,7 @@
       // Lugares con nombre: los de la empresa (para todos) y los míos (de este navegador)
       var empresa = INFO.lugaresEmpresa || [];
       if (empresa.length) {
-        var filaEmp = el('div', { clase: 'recientes' }, [el('span', { clase: 'et', texto: 'De la empresa:' })]);
+        var filaEmp = el('div', { clase: 'recientes' }, [el('span', { clase: 'et', texto: 'Lugares más concurridos:' })]);
         empresa.forEach(function (r) {
           filaEmp.appendChild(el('button', { clase: 'chip empresa', title: r.direccion, onclick: function () { agregarParada(i, r); } }, [r.nombre]));
         });

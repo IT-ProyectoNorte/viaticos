@@ -53,7 +53,7 @@ Pantalla única:
      (`lugarEnPunto`) confirma que sea de Salta con `reverseGeocode` y trae la dirección, el empleado puede cambiar el nombre
      y la agrega. Sin key, el botón no se muestra.
    - También acepta **un link de Google Maps** (largo o corto de "Compartir → Copiar vínculo", `maps.app.goo.gl/...`) o **coordenadas** (`-24.79, -65.41`). Un link de recorrido (`/maps/dir/`) se rechaza porque tiene varios puntos.
-   - **De la empresa**: lugares con nombre que define la empresa en `CONFIG.lugaresEmpresa` (los ven todos).
+   - **Lugares más concurridos**: lugares con nombre que define la empresa en `CONFIG.lugaresEmpresa` (los ven todos).
    - **Mis lugares**: con ☆ en una parada, el empleado la guarda con el nombre que quiera (hasta 30, en su navegador,
      `vk-mis-lugares-v1`); la parada toma ese nombre. Se borran con la ✕ del botón.
    - Chips de "Usados hace poco" (los últimos 12 lugares, guardados en el navegador), sin repetir los que ya tienen nombre.

@@ -25,7 +25,7 @@ var CONFIG = {
   diasAtrasPermitidos: 31, // hasta cuántos días hacia atrás se puede armar un PDF
   maxResultadosBusqueda: 6,
 
-  // Lugares frecuentes de la empresa: aparecen como botones "De la empresa" en cada salida, para todos.
+  // Lugares frecuentes de la empresa: aparecen como botones "Lugares más concurridos" en cada salida, para todos.
   // Cada uno: { nombre: 'Obra La Arbolada', direccion: 'Finca El Ceibal, San Lorenzo', lat: -24.83, lng: -65.51 }
   // Tienen que estar en la provincia de Salta (validarConfig() lo revisa). El orden de acá es el de la pantalla.
   lugaresEmpresa: [
