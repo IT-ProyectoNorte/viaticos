@@ -39,6 +39,7 @@ Marcar con [x] a medida que se completa. `[~]` = hecho en parte o falta probarlo
 - [x] Lugares con nombre: "De la empresa" (`CONFIG.lugaresEmpresa`) y "Mis lugares" de cada empleado (☆). Cargado en /dev
 - [x] Cargar la lista de lugares de la empresa (9 lugares, probados en /dev)
 - [x] Publicar versión 7 (26/11/2026)
+- [x] Título "Lugares más concurridos" en vez de "De la empresa". Publicada como versión 8 (26/11/2026)
 
 ## Fase 3 — Salida
 - [x] `https://viaticos.proyectonorte.com.ar` publicado (25/11/2026): bienvenida con la estética de Proyecto Norte en Cloudflare Pages, entra sola a la web app (SETUP §6)

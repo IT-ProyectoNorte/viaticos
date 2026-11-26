@@ -86,7 +86,7 @@ Copiar la **URL de la aplicación web** (termina en `/exec`).
 Para actualizarla sin que cambie la URL: **Implementar → Gestionar implementaciones → editar (lápiz) → Versión: Nueva versión**.
 Nunca crear una "Nueva implementación" para actualizar: eso genera otra URL y rompe el link de Humand y del subdominio.
 
-**Implementación actual** (versión 7 del 26/11/2026: lugares de la empresa y "Mis lugares" con nombre; v6 OpenStreetMap ruta más rápida; v5 OpenStreetMap ruta más corta; v4 colectora de La Arbolada, v3 estética de Proyecto Norte; misma URL desde la v1):
+**Implementación actual** (versión 8 del 26/11/2026: título "Lugares más concurridos"; v7 lugares de la empresa y "Mis lugares" con nombre; v6 OpenStreetMap ruta más rápida; v5 OpenStreetMap ruta más corta; v4 colectora de La Arbolada, v3 estética de Proyecto Norte; misma URL desde la v1):
 - Proyecto: `https://script.google.com/home/projects/12wdH_i5GFZX28SokR1oyZjuXTtpALkKEuhwRRlGC_7ncCDETS49MrQnX/edit`
 - Web app: `https://script.google.com/a/macros/proyectonorte.com.ar/s/AKfycbxLFH1oeusuhtxGpbnVnJRRU5J354tytp2t-xq3M9VncBfFlD9AsAUBpZBh6AtlGwwP/exec`
 
